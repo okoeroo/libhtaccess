@@ -12,7 +12,7 @@ main (int argc, char *argv[]) {
     }
     fname = argv[1];
 
-    buf = readfileintobuffer(fname);
+    buf = lhta_readfileintobuffer(fname);
     if (!buf) {
         printf("Reading the htaccess file \"%s\" into a buffer failed.\n",
                 argv[1]);
@@ -20,6 +20,6 @@ main (int argc, char *argv[]) {
     }
     /* printf("\n%s\n", buf); */
 
-    return parse_and_load(buf);
+    return lhta_parse_and_load(buf);
 }
 

@@ -21,13 +21,13 @@ enum parser_state_e {
 
 
 
-char *parse_quoted_string(const char *buf);
-int count_token(const char *buf, const char *tokens);
-char *str_returned_upto_EOL(const char *buf);
-int parse_directives(const char *buf, int *lineno);
-int parse_files(const char *buf, int *lineno, int *indent);
-int parse_directory(const char *buf, int *lineno, int *indent);
-int parse_and_load(const char *buf);
-char *readfileintobuffer(const char *fname);
+char *lhta_parse_quoted_string(const char *buf);
+int lhta_count_token(const char *buf, const char *tokens);
+char *lhta_str_returned_upto_EOL(const char *buf);
+int lhta_parse_directives(const char *buf, int *lineno);
+int lhta_parse_files(const char *buf, int *lineno, int *indent);
+int lhta_parse_directory(const char *buf, int *lineno, int *indent);
+int lhta_parse_and_load(const char *buf);
+char *lhta_readfileintobuffer(const char *fname);
 
 #endif /* HTACCESS_H */

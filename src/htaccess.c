@@ -1,7 +1,7 @@
 #include "htaccess/htaccess.h"
 
 char *
-parse_quoted_string(const char *buf) {
+lhta_parse_quoted_string(const char *buf) {
     unsigned int i;
     char *str;
     const char *buf2;
@@ -29,7 +29,7 @@ parse_quoted_string(const char *buf) {
 }
 
 int
-count_token(const char *buf, const char *tokens) {
+lhta_count_token(const char *buf, const char *tokens) {
     int i, j, bsz, tsz, cnt = 0;
 
     bsz = strlen(buf);
@@ -47,7 +47,7 @@ count_token(const char *buf, const char *tokens) {
 }
 
 char *
-str_returned_upto_EOL(const char *buf) {
+lhta_str_returned_upto_EOL(const char *buf) {
     int i = 0;
     char *str;
 
@@ -68,7 +68,7 @@ str_returned_upto_EOL(const char *buf) {
 }
 
 int
-parse_directives(const char *buf, int *lineno) {
+lhta_parse_directives(const char *buf, int *lineno) {
     unsigned int i;
     char *str;
 
@@ -84,9 +84,9 @@ parse_directives(const char *buf, int *lineno) {
             return i - 1;
         } else if (strncasecmp("AuthName", &buf[i], strlen("AuthName")) == 0) {
             i += strlen("AuthName");
-            i += count_token(&buf[i], " \t\n");
+            i += lhta_count_token(&buf[i], " \t\n");
 
-            str = parse_quoted_string(&buf[i]);
+            str = lhta_parse_quoted_string(&buf[i]);
             printf("-- %s - %d\n", str, *lineno);
             i += strlen(str) + 2;
 
@@ -96,9 +96,9 @@ parse_directives(const char *buf, int *lineno) {
 
         } else if (strncasecmp("AuthGroupFile", &buf[i], strlen("AuthGroupFile")) == 0) {
             i += strlen("AuthGroupFile");
-            i += count_token(&buf[i], " \t\n");
+            i += lhta_count_token(&buf[i], " \t\n");
 
-            str = str_returned_upto_EOL(&buf[i]);
+            str = lhta_str_returned_upto_EOL(&buf[i]);
             if (str)
                 (*lineno)++;
 
@@ -108,9 +108,9 @@ parse_directives(const char *buf, int *lineno) {
             continue;
         } else if (strncasecmp("Require group", &buf[i], strlen("Require group")) == 0) {
             i += strlen("Require group");
-            i += count_token(&buf[i], " \t\n");
+            i += lhta_count_token(&buf[i], " \t\n");
 
-            str = str_returned_upto_EOL(&buf[i]);
+            str = lhta_str_returned_upto_EOL(&buf[i]);
             if (str)
                 (*lineno)++;
 
@@ -126,7 +126,7 @@ parse_directives(const char *buf, int *lineno) {
         } else {
             printf("Unknown directive\n");
 
-            str = str_returned_upto_EOL(&buf[i]);
+            str = lhta_str_returned_upto_EOL(&buf[i]);
             if (str)
                 (*lineno)++;
 
@@ -141,7 +141,7 @@ parse_directives(const char *buf, int *lineno) {
 
 
 int
-parse_files(const char *buf, int *lineno, int *indent) {
+lhta_parse_files(const char *buf, int *lineno, int *indent) {
     unsigned int i;
     int rc;
     enum parser_state_e state = NONE;
@@ -177,7 +177,7 @@ parse_files(const char *buf, int *lineno, int *indent) {
             printf("State change to IN_CTX_FILES - %d\n", *lineno);
             continue;
         } else if (state == IN_TAG_FILES && buf[i] == '\"') {
-            str = parse_quoted_string(&buf[i]);
+            str = lhta_parse_quoted_string(&buf[i]);
             printf("- %s - %d\n", str, *lineno);
             i += strlen(str) + 2;
             free(str);
@@ -185,7 +185,7 @@ parse_files(const char *buf, int *lineno, int *indent) {
             continue;
         } else if (state == IN_CTX_FILES) {
             /* Parse directives */
-            rc = parse_directives(&buf[i], lineno);
+            rc = lhta_parse_directives(&buf[i], lineno);
             if (rc < 0)
                 return -1;
 
@@ -201,7 +201,7 @@ parse_files(const char *buf, int *lineno, int *indent) {
 }
 
 int
-parse_directory(const char *buf, int *lineno, int *indent) {
+lhta_parse_directory(const char *buf, int *lineno, int *indent) {
     unsigned int i;
     int rc;
     enum parser_state_e state = NONE;
@@ -228,7 +228,7 @@ parse_directory(const char *buf, int *lineno, int *indent) {
 
             continue;
         } else if (state == IN_TAG_DIRECTORY && buf[i] == '\"') {
-            str = parse_quoted_string(&buf[i]);
+            str = lhta_parse_quoted_string(&buf[i]);
             printf("- %s - %d\n", str, *lineno);
             i += strlen(str) + 2;
             free(str);
@@ -240,7 +240,7 @@ parse_directory(const char *buf, int *lineno, int *indent) {
             continue;
         } else if (state == IN_CTX_DIRECTORY) {
             /* Parse the Files */
-            rc = parse_files(&buf[i], lineno, indent);
+            rc = lhta_parse_files(&buf[i], lineno, indent);
             if (rc < 0)
                 return -1;
 
@@ -257,15 +257,15 @@ parse_directory(const char *buf, int *lineno, int *indent) {
 
 
 int
-parse_and_load(const char *buf) {
+lhta_parse_and_load(const char *buf) {
     int lineno = 0;
     int indent = 0;
 
-    return parse_directory(buf, &lineno, &indent);
+    return lhta_parse_directory(buf, &lineno, &indent);
 }
 
 char *
-readfileintobuffer(const char *fname) {
+lhta_readfileintobuffer(const char *fname) {
     FILE *fp;
     size_t size;
     char *buf = NULL;
