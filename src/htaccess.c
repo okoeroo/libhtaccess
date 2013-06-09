@@ -1,29 +1,10 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
-#include "queue.h"
-#include "tree.h"
-
-
-
-enum parser_state_e {
-    NONE,
-    IN_BEGIN_TAG,
-    IN_CTX_DIRECTORY,
-    IN_TAG_DIRECTORY,
-    IN_CTX_FILES,
-    IN_TAG_FILES,
-    OPENP,
-    CLOSEP
-};
-
+#include "htaccess/htaccess.h"
 
 char *
-parse_quoted_string(const char *buf, int *lineno, int *indent) {
-    int i;
+parse_quoted_string(const char *buf) {
+    unsigned int i;
     char *str;
-    char *buf2;
+    const char *buf2;
 
     if (buf[0] != '\"')
         return NULL;
@@ -84,16 +65,12 @@ str_returned_upto_EOL(const char *buf) {
     str[i] = '\0';
 
     return str;
-
-final:
-    return NULL;
 }
 
 int
-parse_directives(const char *buf, int *lineno, int *indent) {
-    int i;
-    enum parser_state_e state = NONE;
-    char *str, *str2;
+parse_directives(const char *buf, int *lineno) {
+    unsigned int i;
+    char *str;
 
     for (i = 0; i < strlen(buf); i++) {
         if (buf[i] == '\n') {
@@ -109,7 +86,7 @@ parse_directives(const char *buf, int *lineno, int *indent) {
             i += strlen("AuthName");
             i += count_token(&buf[i], " \t\n");
 
-            str = parse_quoted_string(&buf[i], lineno, indent);
+            str = parse_quoted_string(&buf[i]);
             printf("-- %s - %d\n", str, *lineno);
             i += strlen(str) + 2;
 
@@ -165,7 +142,8 @@ parse_directives(const char *buf, int *lineno, int *indent) {
 
 int
 parse_files(const char *buf, int *lineno, int *indent) {
-    int i, rc;
+    unsigned int i;
+    int rc;
     enum parser_state_e state = NONE;
     char *str;
 
@@ -199,7 +177,7 @@ parse_files(const char *buf, int *lineno, int *indent) {
             printf("State change to IN_CTX_FILES - %d\n", *lineno);
             continue;
         } else if (state == IN_TAG_FILES && buf[i] == '\"') {
-            str = parse_quoted_string(&buf[i], lineno, indent);
+            str = parse_quoted_string(&buf[i]);
             printf("- %s - %d\n", str, *lineno);
             i += strlen(str) + 2;
             free(str);
@@ -207,7 +185,7 @@ parse_files(const char *buf, int *lineno, int *indent) {
             continue;
         } else if (state == IN_CTX_FILES) {
             /* Parse directives */
-            rc = parse_directives(&buf[i], lineno, indent);
+            rc = parse_directives(&buf[i], lineno);
             if (rc < 0)
                 return -1;
 
@@ -224,7 +202,8 @@ parse_files(const char *buf, int *lineno, int *indent) {
 
 int
 parse_directory(const char *buf, int *lineno, int *indent) {
-    int i, rc;
+    unsigned int i;
+    int rc;
     enum parser_state_e state = NONE;
     char *str;
 
@@ -249,7 +228,7 @@ parse_directory(const char *buf, int *lineno, int *indent) {
 
             continue;
         } else if (state == IN_TAG_DIRECTORY && buf[i] == '\"') {
-            str = parse_quoted_string(&buf[i], lineno, indent);
+            str = parse_quoted_string(&buf[i]);
             printf("- %s - %d\n", str, *lineno);
             i += strlen(str) + 2;
             free(str);
@@ -288,7 +267,7 @@ parse_and_load(const char *buf) {
 char *
 readfileintobuffer(const char *fname) {
     FILE *fp;
-    long size;
+    size_t size;
     char *buf = NULL;
 
     fp = fopen(fname, "r");
@@ -316,16 +295,3 @@ final:
     return NULL;
 }
 
-
-int
-main (int argc, char *argv[]) {
-    char *buf = NULL;
-    const char *fname = NULL;
-
-    fname = argv[1];
-
-    buf = readfileintobuffer(fname);
-    /* printf("\n%s\n", buf); */
-
-    return parse_and_load(buf);
-}
