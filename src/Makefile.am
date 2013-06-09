@@ -26,6 +26,7 @@ libhtaccess_la_SOURCES = \
         config.h \
         tree.h \
         queue.h \
+        htaccess_internal.h \
         htaccess.c
 
 libhtaccess_la_LDFLAGS = -fstack-protector -avoid-version
