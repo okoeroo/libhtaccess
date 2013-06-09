@@ -20,12 +20,12 @@ lib_LTLIBRARIES = libhtaccess.la
 libhtaccess_ladir = $(includedir)/htaccess/
 
 libhtaccess_la_HEADERS = \
-        htaccess/tree.h \
-        htaccess/queue.h \
         htaccess/htaccess.h
 
 libhtaccess_la_SOURCES = \
         config.h \
+        tree.h \
+        queue.h \
         htaccess.c
 
 libhtaccess_la_LDFLAGS = -fstack-protector -avoid-version

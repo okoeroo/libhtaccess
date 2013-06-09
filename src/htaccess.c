@@ -1,4 +1,5 @@
 #include "htaccess/htaccess.h"
+#include "htaccess/htaccess_internal.h"
 
 char *
 lhta_parse_quoted_string(const char *buf) {
