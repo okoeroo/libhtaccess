@@ -1,5 +1,5 @@
 #include <stdio.h>
-#include "htaccess/htaccess.h"
+#include <htaccess/htaccess.h>
 
 
 int
@@ -13,7 +13,7 @@ main (int argc, char *argv[]) {
     }
     fname = argv[1];
 
-    buf = lhta_readfileintobuffer(fname);
+    buf = htaccess_readfile(fname);
     if (!buf) {
         printf("Reading the htaccess file \"%s\" into a buffer failed.\n",
                 argv[1]);
@@ -21,6 +21,6 @@ main (int argc, char *argv[]) {
     }
     /* printf("\n%s\n", buf); */
 
-    return lhta_parse_and_load(buf);
+    return htaccess_parse_and_load(buf);
 }
 
