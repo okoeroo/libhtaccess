@@ -4,50 +4,50 @@
 
 /***** RB stuff *****/
 
-RB_GENERATE(directive_tree_t, rb_directive_s, entry, htaccess_directive_cmp)
+RB_GENERATE(directive_map_tree_t, rb_directive_map_s, entry, htaccess_directive_map_cmp)
 
-#define xdirective_add(xdirective, cstr) do {                     \
-        htaccess_directive_t *c = malloc(sizeof(htaccess_directive_t));  \
+#define xdirective_map_add(xdirective, cstr) do {                     \
+        htaccess_directive_map_t *c = malloc(sizeof(htaccess_directive_map_t));  \
                                                                   \
         c->type = xdirective;                                     \
         c->str  = cstr;                                           \
                                                                   \
-        RB_INSERT(directive_tree_t, &directive_head, c);            \
+        RB_INSERT(directive_map_tree_t, &directive_map_head, c);            \
 } while (0)
 
 
-struct directive_tree_t directive_head;
-int xdirective_tree_initialized = 0;
+struct directive_map_tree_t directive_map_head;
+int xdirective_map_tree_initialized = 0;
 
 int
-htaccess_directive_cmp(htaccess_directive_t *a, htaccess_directive_t *b) {
+htaccess_directive_map_cmp(htaccess_directive_map_t *a, htaccess_directive_map_t *b) {
     return b->type - a->type;
 }
 
 void
-directive_list_init(void) {
-    if (xdirective_tree_initialized) {
+directive_map_list_init(void) {
+    if (xdirective_map_tree_initialized) {
         /* Already initialized. */
         return;
     }
 
-    RB_INIT(&directive_head);
+    RB_INIT(&directive_map_head);
 
     /* Initializations */
-    xdirective_add(AUTHNAME, "http://www.w3.org/2001/XMLSchema#string");
+    xdirective_map_add(AUTHNAME, "http://www.w3.org/2001/XMLSchema#string");
 
-    xdirective_tree_initialized = 1;
+    xdirective_map_tree_initialized = 1;
     return;
 }
 
 const char *
-directive_to_str(htaccess_directive_type_t type) {
-    htaccess_directive_t c;
-    htaccess_directive_t *found;
+directive_map_to_str(htaccess_directive_type_t type) {
+    htaccess_directive_map_t c;
+    htaccess_directive_map_t *found;
 
     c.type = type;
 
-    if (!(found = RB_FIND(directive_tree_t, &directive_head, &c))) {
+    if (!(found = RB_FIND(directive_map_tree_t, &directive_map_head, &c))) {
         return "unknown";
     }
 
@@ -113,8 +113,11 @@ new_htaccess_directive_kv(const char *key, char *value, short v_loc) {
 
     memset(hta_dir_kv, 0, sizeof(htaccess_directive_kv_t));
 
-    if (v_loc && value)
+    if (v_loc && value) {
         hta_dir_kv->value = strdup(value);
+        if (!hta_dir_kv->value)
+            goto error;
+    }
 
     return hta_dir_kv;
 error:
@@ -159,6 +162,8 @@ htaccess_ctx_t *
 new_htaccess_ctx(void) {
     htaccess_ctx_t *ctx = NULL;
 
+    directive_map_list_init();
+
     ctx = malloc(sizeof(htaccess_ctx_t));
     if (!ctx)
         goto error;
@@ -176,7 +181,6 @@ free_htaccess_directive_kv(htaccess_directive_kv_t *kv) {
     if (!kv)
         return;
 
-    free(kv->key);
     free(kv->value);
     free(kv);
     return;

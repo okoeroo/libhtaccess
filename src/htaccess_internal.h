@@ -29,16 +29,19 @@ typedef enum htaccess_directives_e {
     CHARSETSOURCEENC
 } htaccess_directive_type_t;
 
-typedef struct rb_directive_s {
-    RB_ENTRY(rb_directive_s) entry;
+typedef struct rb_directive_map_s {
+    RB_ENTRY(rb_directive_map_s) entry;
 
     htaccess_directive_type_t type;
     const char *str;
-} htaccess_directive_t;
+} htaccess_directive_map_t;
 
-int htaccess_directive_cmp(htaccess_directive_t *a, htaccess_directive_t *b);
-RB_HEAD(directive_tree_t, rb_directive_s);
-RB_PROTOTYPE(directive_tree_t, rb_directive_s, entry, htaccess_directive_cmp)
+int htaccess_directive_map_cmp(htaccess_directive_map_t *a, htaccess_directive_map_t *b);
+RB_HEAD(directive_map_tree_t, rb_directive_map_s);
+RB_PROTOTYPE(directive_map_tree_t, rb_directive_map_s, entry, htaccess_directive_map_cmp)
+
+void directive_map_list_init(void);
+const char *directive_map_to_str(htaccess_directive_type_t type);
 
 
 typedef struct rb_directive_kv_s {
@@ -80,12 +83,14 @@ typedef struct htaccess_ctx_s {
 } htaccess_ctx_t;
 
 
+htaccess_directive_kv_t *new_htaccess_directive_kv(const char *, char *, short);
 htaccess_file_t      *new_htaccess_file(void);
 htaccess_directory_t *new_htaccess_directory(void);
 htaccess_ctx_t       *new_htaccess_ctx(void);
-void free_htaccess_file(htaccess_file_t *fn);
-void free_htaccess_directory(htaccess_directory_t *dir);
-void free_htaccess_ctx(htaccess_ctx_t *ctx);
+void free_htaccess_directive_kv(htaccess_directive_kv_t *);
+void free_htaccess_file(htaccess_file_t *);
+void free_htaccess_directory(htaccess_directory_t *);
+void free_htaccess_ctx(htaccess_ctx_t *);
 
 
 enum parser_state_e {
