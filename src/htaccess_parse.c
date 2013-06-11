@@ -3,9 +3,10 @@
 
 
 int
-htaccess_parse_directives(const char *buf, int *lineno) {
+htaccess_parse_directives(const char *buf, int *lineno, htaccess_file_t *hta_file) {
     unsigned int i;
     char *str;
+    htaccess_directive_kv_t *hta_dir_kv;
 
     for (i = 0; i < strlen(buf); i++) {
         if (buf[i] == '\n') {
@@ -20,6 +21,8 @@ htaccess_parse_directives(const char *buf, int *lineno) {
         } else if (strncasecmp("AuthName", &buf[i], strlen("AuthName")) == 0) {
             i += strlen("AuthName");
             i += htaccess_count_token(&buf[i], " \t\n");
+
+
 
             str = htaccess_parse_quoted_string(&buf[i]);
             printf("-- %s - %d\n", str, *lineno);
@@ -76,11 +79,12 @@ htaccess_parse_directives(const char *buf, int *lineno) {
 
 
 int
-htaccess_parse_files(const char *buf, int *lineno, int *indent, htaccess_directory_t *dir) {
+htaccess_parse_files(const char *buf, int *lineno, int *indent, htaccess_directory_t *hta_dir) {
     unsigned int i;
     int rc;
     enum parser_state_e state = NONE;
     char *str;
+    htaccess_file_t *hta_file;
 
     for (i = 0; i < strlen(buf); i++) {
         if (buf[i] == '\n') {
@@ -96,6 +100,15 @@ htaccess_parse_files(const char *buf, int *lineno, int *indent, htaccess_directo
             i += strlen("</files>");
             (*indent)--;
             state = NONE;
+
+            printf("RB_INSERT(rb_file_list_head_t, &(hta_dir->files), hta_file);\n");
+            if (!hta_file) {
+                printf("FAIL! no hta_dir\n");
+                return -1;
+            }
+            RB_INSERT(rb_file_list_head_t, &(hta_dir->files), hta_file);
+            hta_file = NULL;
+
             printf("State change to NONE (files) - %d\n", *lineno);
 
             continue;
@@ -106,6 +119,12 @@ htaccess_parse_files(const char *buf, int *lineno, int *indent, htaccess_directo
             state = IN_TAG_FILES;
             printf("State change to IN_TAG_FILES - %d\n", *lineno);
 
+            hta_file = new_htaccess_file();
+            if (!hta_file) {
+                printf("Unable to construct a new file entry\n");
+                return -1;
+            }
+
             continue;
         } else if (state == IN_TAG_FILES && buf[i] == '>') {
             state = IN_CTX_FILES;
@@ -115,12 +134,17 @@ htaccess_parse_files(const char *buf, int *lineno, int *indent, htaccess_directo
             str = htaccess_parse_quoted_string(&buf[i]);
             printf("- %s - %d\n", str, *lineno);
             i += strlen(str) + 2;
-            free(str);
+
+            if (!hta_file) {
+                printf("Unable to find a file entry\n");
+                return -1;
+            }
+            hta_file->filename = str;
 
             continue;
         } else if (state == IN_CTX_FILES) {
             /* Parse directives */
-            rc = htaccess_parse_directives(&buf[i], lineno);
+            rc = htaccess_parse_directives(&buf[i], lineno, hta_file);
             if (rc < 0)
                 return -1;
 
@@ -142,7 +166,7 @@ htaccess_parse_directory(const char *buf, int *lineno, int *indent,
     int rc;
     enum parser_state_e state = NONE;
     char *str;
-    htaccess_directory_t *dir;
+    htaccess_directory_t *hta_dir;
 
 
     for (i = 0; i < strlen(buf); i++) {
@@ -157,8 +181,13 @@ htaccess_parse_directory(const char *buf, int *lineno, int *indent,
             state = NONE;
 
             printf("RB_INSERT(rb_directory_list_head_t, &(ht_ctx->directories), dir)\n");
-            RB_INSERT(rb_directory_list_head_t, &(ht_ctx->directories), dir);
-            dir = NULL;
+            if (!hta_dir) {
+                printf("FAIL! no hta_dir\n");
+                return -1;
+            }
+
+            RB_INSERT(rb_directory_list_head_t, &(ht_ctx->directories), hta_dir);
+            hta_dir = NULL;
 
             printf("State change to NONE (directory) - %d\n", *lineno);
 
@@ -169,8 +198,8 @@ htaccess_parse_directory(const char *buf, int *lineno, int *indent,
             state = IN_TAG_DIRECTORY;
             printf("State change to IN_TAG_DIRECTORY - %d\n", *lineno);
 
-            dir = new_htaccess_directory();
-            if (!dir) {
+            hta_dir = new_htaccess_directory();
+            if (!hta_dir) {
                 printf("Unable to construct a new directory entry\n");
                 return -1;
             }
@@ -178,9 +207,14 @@ htaccess_parse_directory(const char *buf, int *lineno, int *indent,
             continue;
         } else if (state == IN_TAG_DIRECTORY && buf[i] == '\"') {
             str = htaccess_parse_quoted_string(&buf[i]);
+            if (!hta_dir) {
+                printf("Parse error: htaccess_directory_t was not created\n");
+                return -1;
+            }
+
+            hta_dir->dirname = str;
             printf("- %s - %d\n", str, *lineno);
             i += strlen(str) + 2;
-            free(str);
 
             continue;
         } else if (state == IN_TAG_DIRECTORY && buf[i] == '>') {
@@ -189,7 +223,7 @@ htaccess_parse_directory(const char *buf, int *lineno, int *indent,
             continue;
         } else if (state == IN_CTX_DIRECTORY) {
             /* Parse the Files */
-            rc = htaccess_parse_files(&buf[i], lineno, indent, dir);
+            rc = htaccess_parse_files(&buf[i], lineno, indent, hta_dir);
             if (rc < 0)
                 return -1;
 
@@ -202,8 +236,13 @@ htaccess_parse_directory(const char *buf, int *lineno, int *indent,
     }
     printf("I'm done\n");
 
-    RB_FOREACH(dir, rb_directory_list_head_t, &(ht_ctx->directories)) {
-        printf("dir->dirname: %s\n", dir->dirname);
+    htaccess_file_t *hta_file;
+    RB_FOREACH(hta_dir, rb_directory_list_head_t, &(ht_ctx->directories)) {
+        printf("hta_dir->dirname: %s\n", hta_dir->dirname);
+        RB_FOREACH(hta_file, rb_file_list_head_t, &(hta_dir->files)) {
+            printf("hta_file->filename: %s\n", hta_file->filename);
+        }
+
     }
 
     return 0;

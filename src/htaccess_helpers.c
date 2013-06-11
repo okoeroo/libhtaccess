@@ -4,39 +4,139 @@
 
 /***** RB stuff *****/
 
-#if 0
+RB_GENERATE(directive_tree_t, rb_directive_s, entry, htaccess_directive_cmp)
+
+#define xdirective_add(xdirective, cstr) do {                     \
+        htaccess_directive_t *c = malloc(sizeof(htaccess_directive_t));  \
+                                                                  \
+        c->type = xdirective;                                     \
+        c->str  = cstr;                                           \
+                                                                  \
+        RB_INSERT(directive_tree_t, &directive_head, c);            \
+} while (0)
+
+
+struct directive_tree_t directive_head;
+int xdirective_tree_initialized = 0;
+
+int
+htaccess_directive_cmp(htaccess_directive_t *a, htaccess_directive_t *b) {
+    return b->type - a->type;
+}
+
+void
+directive_list_init(void) {
+    if (xdirective_tree_initialized) {
+        /* Already initialized. */
+        return;
+    }
+
+    RB_INIT(&directive_head);
+
+    /* Initializations */
+    xdirective_add(AUTHNAME, "http://www.w3.org/2001/XMLSchema#string");
+
+    xdirective_tree_initialized = 1;
+    return;
+}
 
 const char *
-datatype_to_str(ga_xacml_datatype_t type) {
-    struct datatype   c;
-    struct datatype * found;
+directive_to_str(htaccess_directive_type_t type) {
+    htaccess_directive_t c;
+    htaccess_directive_t *found;
 
     c.type = type;
 
-    if (!(found = RB_FIND(datatype_tree, &datatype_head, &c))) {
+    if (!(found = RB_FIND(directive_tree_t, &directive_head, &c))) {
         return "unknown";
     }
 
     return found->str;
 }
-#endif
 
+RB_GENERATE(rb_directive_kv_list_head_t, rb_directive_kv_s, next, htaccess_directive_kv_cmp)
+RB_GENERATE(rb_file_list_head_t, rb_file_s, next, htaccess_file_cmp)
+RB_GENERATE(rb_directory_list_head_t, rb_directory_s, next, htaccess_directory_cmp)
 
-int htaccess_files_cmp(struct rb_files_s *a,
-                       struct rb_files_s *b) {
+int htaccess_directive_kv_cmp(struct rb_directive_kv_s *a,
+                              struct rb_directive_kv_s *b) {
+    int rc;
+    if (!a && !b)
+        return 0;
+
+    /* printf("htaccess_directive_kv_cmp(%s, %s)\n", a->directive_kvname, b->directive_kvname); */
+    rc = a->key - b->key;
+    if (rc == 0)
+        return strcmp(a->value, b->value);
+
+     return rc;
+}
+
+int htaccess_file_cmp(struct rb_file_s *a,
+                      struct rb_file_s *b) {
+    if ((!a && !b) || (!a->filename && !b->filename))
+        return 0;
+
+    /* printf("htaccess_file_cmp(%s, %s)\n", a->filename, b->filename); */
     return strcmp(a->filename, b->filename);
 }
-RB_GENERATE(rb_files_list_head_t, rb_files_s, next, htaccess_files_cmp)
 
 int
 htaccess_directory_cmp(htaccess_directory_t *a,
                        htaccess_directory_t *b) {
+    if ((!a && !b) || (!a->dirname && !b->dirname))
+        return 0;
+
+    /* printf("htaccess_directory_cmp(%s, %s)\n", a->dirname, b->dirname); */
     return strcmp(a->dirname, b->dirname);
 }
-RB_GENERATE(rb_directory_list_head_t, rb_directory_s, next, htaccess_directory_cmp)
 
 
 
+/* new_htaccess_directive_kv() expects a key to be set.
+   v_loc: set to 0, and new_htaccess_directive_kv() will NOT allocate memory.
+          The expectation is that the caller has already allocated the memory
+          for the key.
+          set to 1, and new_htaccess_directive_kv() will allocate memory for
+          the null-terminated string.
+ */
+htaccess_directive_kv_t *
+new_htaccess_directive_kv(const char *key, char *value, short v_loc) {
+    htaccess_directive_kv_t *hta_dir_kv;
+
+    if (!key)
+        return NULL;
+
+    hta_dir_kv = malloc(sizeof(htaccess_directive_kv_t));
+    if (!hta_dir_kv)
+        return NULL;
+
+    memset(hta_dir_kv, 0, sizeof(htaccess_directive_kv_t));
+
+    if (v_loc && value)
+        hta_dir_kv->value = strdup(value);
+
+    return hta_dir_kv;
+error:
+    free(hta_dir_kv);
+    return NULL;
+}
+
+htaccess_file_t *
+new_htaccess_file(void) {
+    htaccess_file_t *file;
+
+    file = malloc(sizeof(htaccess_file_t));
+    if (!file)
+        goto error;
+
+    file->filename = NULL;
+    return file;
+
+error:
+    free(file);
+    return NULL;
+}
 
 htaccess_directory_t *
 new_htaccess_directory(void) {
@@ -46,7 +146,8 @@ new_htaccess_directory(void) {
     if (!dir)
         goto error;
 
-    memset(dir, 0, sizeof(htaccess_directory_t));
+    RB_INIT(&(dir->files));
+    dir->dirname = NULL;
     return dir;
 
 error:
@@ -63,7 +164,6 @@ new_htaccess_ctx(void) {
         goto error;
 
     RB_INIT(&(ctx->directories));
-
     return ctx;
 
 error:
@@ -71,11 +171,36 @@ error:
     return NULL;
 }
 
+void
+free_htaccess_directive_kv(htaccess_directive_kv_t *kv) {
+    if (!kv)
+        return;
+
+    free(kv->key);
+    free(kv->value);
+    free(kv);
+    return;
+}
+
+void
+free_htaccess_file(htaccess_file_t *fn) {
+    if (!fn)
+        return;
+
+    free(fn->filename);
+    free(fn);
+    return;
+}
 
 void
 free_htaccess_directory(htaccess_directory_t *dir) {
+    htaccess_file_t *fn, *tmp_fn;
     if (!dir)
         return;
+
+    RB_FOREACH_SAFE(fn, rb_file_list_head_t, &(dir->files), tmp_fn) {
+        free_htaccess_file(fn);
+    }
 
     free(dir->dirname);
     free(dir);
