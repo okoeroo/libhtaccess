@@ -6,6 +6,7 @@ int
 htaccess_parse_directives(const char *buf, int *lineno, htaccess_file_t *hta_file) {
     unsigned int i;
     char *str;
+    htaccess_directive_map_t *hta_dir_map;
     htaccess_directive_kv_t *hta_dir_kv;
 
     for (i = 0; i < strlen(buf); i++) {
@@ -18,6 +19,12 @@ htaccess_parse_directives(const char *buf, int *lineno, htaccess_file_t *hta_fil
             /* Found parent, backstep by one and return */
             printf("Found </files>, returning - %d\n", *lineno);
             return i - 1;
+        } else if ((hta_dir_map = search_directive_map(&buf[i]))) {
+            /* Based on the type of dir_map, track how many parameters it expects
+             * and push the parsed data into the right type of struct and tree/list
+             */
+
+
         } else if (strncasecmp("AuthName", &buf[i], strlen("AuthName")) == 0) {
             i += strlen("AuthName");
             i += htaccess_count_token(&buf[i], " \t\n");

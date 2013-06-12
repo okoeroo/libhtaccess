@@ -42,6 +42,7 @@ RB_PROTOTYPE(directive_map_tree_t, rb_directive_map_s, entry, htaccess_directive
 
 void directive_map_list_init(void);
 const char *directive_map_to_str(htaccess_directive_type_t type);
+htaccess_directive_map_t *search_directive_map(const char *);
 
 
 typedef struct rb_directive_kv_s {

@@ -21,7 +21,8 @@ int xdirective_map_tree_initialized = 0;
 
 int
 htaccess_directive_map_cmp(htaccess_directive_map_t *a, htaccess_directive_map_t *b) {
-    return b->type - a->type;
+    return strcasecmp(a->str, b->str);
+    /* return b->type - a->type; */
 }
 
 void
@@ -34,10 +35,37 @@ directive_map_list_init(void) {
     RB_INIT(&directive_map_head);
 
     /* Initializations */
-    xdirective_map_add(AUTHNAME, "http://www.w3.org/2001/XMLSchema#string");
+    xdirective_map_add(AUTHNAME, "AuthName");
+    xdirective_map_add(AUTHGROUPFILE, "AuthGroupFile");
+    xdirective_map_add(REQUIRE_GROUP, "Require Group");
+    xdirective_map_add(ORDER, "Order");
+    xdirective_map_add(DENY_FROM, "Deny From");
+    xdirective_map_add(ALLOW_FROM, "Allow From");
+    xdirective_map_add(AUTHTYPE, "AuthType");
+    xdirective_map_add(AUTHUSERFILE, "AuthUserFile");
+    xdirective_map_add(REQUIRE, "Require");
+    xdirective_map_add(REDIRECT, "Redirect");
+    xdirective_map_add(SETENVIF, "SetEnvIf");
+    xdirective_map_add(REWRITECOND, "RewriteCond");
+    xdirective_map_add(REWRITERULE, "RewriteRule");
+    xdirective_map_add(DIRECTORYINDEX, "DirectoryIndex");
+    xdirective_map_add(ADDHANDLER, "AddHandler");
+    xdirective_map_add(ERRORDOCUMENT, "ErrorDocument");
+    xdirective_map_add(ADDDEFAULTCHARSET, "AddDefaultCharset");
+    xdirective_map_add(CHARSETSOURCEENC, "CharsetSourceEnc");
 
     xdirective_map_tree_initialized = 1;
     return;
+}
+
+htaccess_directive_map_t *
+search_directive_map(const char *s) {
+    htaccess_directive_map_t *dir_map_found, dir_map_search;
+
+    dir_map_search.str = s;
+    dir_map_found = RB_FIND(directive_map_tree_t, &directive_map_head, &dir_map_search);
+
+    return dir_map_found;
 }
 
 const char *
