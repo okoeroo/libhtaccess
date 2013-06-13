@@ -93,7 +93,7 @@ RB_GENERATE(rb_directory_list_head_t, rb_directory_s, next, htaccess_directory_c
 int htaccess_directive_kv_cmp(struct rb_directive_kv_s *a,
                               struct rb_directive_kv_s *b) {
     int rc;
-    if (!a && !b)
+    if ((!a && !b) || (!a->key && !b->key))
         return 0;
 
     /* printf("htaccess_directive_kv_cmp(%s, %s)\n", a->directive_kvname, b->directive_kvname); */
