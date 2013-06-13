@@ -40,13 +40,13 @@ directive_map_list_init(void) {
     /* Initializations */
     xdirective_map_add(AUTHNAME, "AuthName", 1, HTA_MUST_QUOTE);
     xdirective_map_add(AUTHGROUPFILE, "AuthGroupFile", 1, HTA_OPT_QUOTE);
-    xdirective_map_add(REQUIRE_GROUP, "Require Group", 1, HTA_NO_QUOTE);
+    /* xdirective_map_add(REQUIRE_GROUP, "Require Group", 1, HTA_NO_QUOTE); */
     xdirective_map_add(ORDER, "Order", 2, HTA_NO_QUOTE);
     xdirective_map_add(DENY_FROM, "Deny From", 1, HTA_NO_QUOTE);
     xdirective_map_add(ALLOW_FROM, "Allow From", 1, HTA_NO_QUOTE);
     xdirective_map_add(AUTHTYPE, "AuthType", 1, HTA_NO_QUOTE);
     xdirective_map_add(AUTHUSERFILE, "AuthUserFile", 1, HTA_OPT_QUOTE);
-    xdirective_map_add(REQUIRE, "Require", 1, HTA_NO_QUOTE);
+    xdirective_map_add(REQUIRE, "Require", 99, HTA_NO_QUOTE);
     xdirective_map_add(REDIRECT, "Redirect", 2, HTA_NO_QUOTE);
     xdirective_map_add(SETENVIF, "SetEnvIf", 3, HTA_NO_QUOTE);
     xdirective_map_add(REWRITECOND, "RewriteCond", 2, HTA_NO_QUOTE);
@@ -332,6 +332,30 @@ htaccess_count_token(const char *buf, const char *tokens) {
         }
     }
     return cnt;
+}
+
+char *
+htaccess_copy_string(const char *buf) {
+    int i = 0;
+    char *str;
+
+    if (!buf)
+        return NULL;
+
+    while (1) {
+        if (isspace(buf[i]))
+            break;
+        i++;
+    }
+done:
+    str = malloc(i + 1);
+    if (!str)
+        return NULL;
+
+    memcpy(str, buf, i);
+    str[i] = '\0';
+
+    return str;
 }
 
 char *

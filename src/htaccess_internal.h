@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ctype.h>
 
 #include "htaccess/queue.h"
 #include "htaccess/tree.h"
@@ -46,7 +47,7 @@ typedef struct rb_directive_map_s {
     directive_quotation_t quotation;
 } htaccess_directive_map_t;
 
-int htaccess_directive_map_cmp(htaccess_directive_map_t *a, htaccess_directive_map_t *b);
+int htaccess_directive_map_cmp(htaccess_directive_map_t *, htaccess_directive_map_t *);
 RB_HEAD(directive_map_tree_t, rb_directive_map_s);
 RB_PROTOTYPE(directive_map_tree_t, rb_directive_map_s, entry, htaccess_directive_map_cmp)
 
@@ -123,13 +124,14 @@ enum parser_state_e {
     CLOSEP
 };
 
-char *htaccess_parse_quoted_string(const char *buf);
-int htaccess_count_token(const char *buf, const char *tokens);
-char *htaccess_str_returned_upto_EOL(const char *buf);
+char *htaccess_parse_quoted_string(const char *);
+int htaccess_count_token(const char *, const char *);
+char *htaccess_str_returned_upto_EOL(const char *);
+char *htaccess_copy_string(const char *);
 
-int htaccess_parse_directives(const char *buf, int *lineno, htaccess_file_t *hta_file);
-int htaccess_parse_files(const char *buf, int *lineno, int *indent, htaccess_directory_t *dir);
-int htaccess_parse_directory(const char *buf, int *lineno, int *indent, htaccess_ctx_t *ht_ctx);
+int htaccess_parse_directives(const char *, int *, htaccess_file_t *);
+int htaccess_parse_files(const char *, int *, int *, htaccess_directory_t *);
+int htaccess_parse_directory(const char *, int *, int *, htaccess_ctx_t *);
 
 #endif /* HTACCESS_INTERNAL_H */
 
