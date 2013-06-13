@@ -8,6 +8,7 @@ htaccess_parse_directives(const char *buf, int *lineno, htaccess_file_t *hta_fil
     char *str;
     htaccess_directive_map_t *hta_dir_map;
     htaccess_directive_kv_t *hta_dir_kv;
+    htaccess_directive_value_t *hta_dir_val;
 
     for (i = 0; i < strlen(buf); i++) {
         if (buf[i] == '\n') {
@@ -19,65 +20,42 @@ htaccess_parse_directives(const char *buf, int *lineno, htaccess_file_t *hta_fil
             /* Found parent, backstep by one and return */
             printf("Found </files>, returning - %d\n", *lineno);
             return i - 1;
-        } else if ((hta_dir_map = search_directive_map(&buf[i]))) {
+        } else if ((hta_dir_map = search_directive_map_on_str(&buf[i]))) {
             /* Based on the type of dir_map, track how many parameters it expects
              * and push the parsed data into the right type of struct and tree/list
              */
+            printf("------------ I found a \"%s\"\n", hta_dir_map->str);
 
+            hta_dir_kv = new_htaccess_directive_kv(hta_dir_map);
+            if (!hta_dir_kv)
+                return -1;
 
-        } else if (strncasecmp("AuthName", &buf[i], strlen("AuthName")) == 0) {
-            i += strlen("AuthName");
+            /* Move beyond the matched tag */
+            i += hta_dir_map->len;
             i += htaccess_count_token(&buf[i], " \t\n");
 
+            /* starts with a quote? */
+            if (buf[i] == '\"') {
+                str = htaccess_parse_quoted_string(&buf[i]);
+                i += strlen(str) + 2;
+            } else {
+                str = htaccess_str_returned_upto_EOL(&buf[i]);
+                i += strlen(str);
+            }
+            hta_dir_val = new_htaccess_directive_value(str, 0);
+            if (!hta_dir_val)
+                return -1;
 
-
-            str = htaccess_parse_quoted_string(&buf[i]);
+            TAILQ_INSERT_TAIL(&(hta_dir_kv->values), hta_dir_val, next);
             printf("-- %s - %d\n", str, *lineno);
-            i += strlen(str) + 2;
 
-            (*lineno)++;
-            free(str);
-            continue;
+            RB_INSERT(rb_directive_kv_list_head_t, &(hta_file->directives), hta_dir_kv);
 
-        } else if (strncasecmp("AuthGroupFile", &buf[i], strlen("AuthGroupFile")) == 0) {
-            i += strlen("AuthGroupFile");
-            i += htaccess_count_token(&buf[i], " \t\n");
-
-            str = htaccess_str_returned_upto_EOL(&buf[i]);
-            if (str)
-                (*lineno)++;
-
-            printf("-- %s - %d\n", str, *lineno);
-            i += strlen(str);
-            free(str);
-            continue;
-        } else if (strncasecmp("Require group", &buf[i], strlen("Require group")) == 0) {
-            i += strlen("Require group");
-            i += htaccess_count_token(&buf[i], " \t\n");
-
-            str = htaccess_str_returned_upto_EOL(&buf[i]);
-            if (str)
-                (*lineno)++;
-
-            printf("-- %s - %d\n", str, *lineno);
-            i += strlen(str);
-            free(str);
-            continue;
-        } else if (strncasecmp("deny from all", &buf[i], strlen("deny from all")) == 0) {
-            i += strlen("deny from all");
-
-            printf("-- deny from all - %d\n", *lineno);
             continue;
         } else {
             printf("Unknown directive\n");
+            printf("\n----\n%s\n----\n", &buf[i]);
 
-            str = htaccess_str_returned_upto_EOL(&buf[i]);
-            if (str)
-                (*lineno)++;
-
-            printf("-- %s - %d\n", str, *lineno);
-            i += strlen(str);
-            free(str);
             return -1;
         }
     }
@@ -244,12 +222,20 @@ htaccess_parse_directory(const char *buf, int *lineno, int *indent,
     printf("I'm done\n");
 
     htaccess_file_t *hta_file;
+    htaccess_directive_kv_t *hta_dir_kv;
+    htaccess_directive_value_t *hta_dir_value;
+
     RB_FOREACH(hta_dir, rb_directory_list_head_t, &(ht_ctx->directories)) {
         printf("hta_dir->dirname: %s\n", hta_dir->dirname);
         RB_FOREACH(hta_file, rb_file_list_head_t, &(hta_dir->files)) {
             printf("hta_file->filename: %s\n", hta_file->filename);
+            RB_FOREACH(hta_dir_kv, rb_directive_kv_list_head_t, &(hta_file->directives)) {
+                printf("hta_dir_kv->key->str: %s\n", hta_dir_kv->key->str);
+                TAILQ_FOREACH(hta_dir_value, &(hta_dir_kv->values), next) {
+                    printf("hta_dir_value->value: %s\n", hta_dir_value->value);
+                }
+            }
         }
-
     }
 
     return 0;

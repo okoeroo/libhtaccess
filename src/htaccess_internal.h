@@ -9,6 +9,7 @@
 #include "htaccess/tree.h"
 
 typedef enum htaccess_directives_e {
+    NO_DIRECTIVE = 0,
     AUTHNAME,
     AUTHGROUPFILE,
     REQUIRE_GROUP,
@@ -29,11 +30,20 @@ typedef enum htaccess_directives_e {
     CHARSETSOURCEENC
 } htaccess_directive_type_t;
 
+typedef enum directive_quotation_e {
+    HTA_MUST_QUOTE,
+    HTA_OPT_QUOTE,
+    HTA_NO_QUOTE
+} directive_quotation_t;
+
 typedef struct rb_directive_map_s {
     RB_ENTRY(rb_directive_map_s) entry;
 
     htaccess_directive_type_t type;
     const char *str;
+    unsigned int len;
+    unsigned short par_cnt;
+    directive_quotation_t quotation;
 } htaccess_directive_map_t;
 
 int htaccess_directive_map_cmp(htaccess_directive_map_t *a, htaccess_directive_map_t *b);
@@ -41,15 +51,21 @@ RB_HEAD(directive_map_tree_t, rb_directive_map_s);
 RB_PROTOTYPE(directive_map_tree_t, rb_directive_map_s, entry, htaccess_directive_map_cmp)
 
 void directive_map_list_init(void);
-const char *directive_map_to_str(htaccess_directive_type_t type);
-htaccess_directive_map_t *search_directive_map(const char *);
+htaccess_directive_map_t *search_directive_map_on_str(const char *);
+htaccess_directive_map_t *search_directive_map_on_type(htaccess_directive_type_t);
 
+
+typedef struct tq_directive_value_s {
+    TAILQ_ENTRY(tq_directive_value_s) next;
+    unsigned short v_loc;
+    char *value;
+} htaccess_directive_value_t;
 
 typedef struct rb_directive_kv_s {
     RB_ENTRY(rb_directive_kv_s) next;
 
-    htaccess_directive_type_t key;
-    char *value;
+    htaccess_directive_map_t *key;
+    TAILQ_HEAD(tq_directive_value_tree_s, tq_directive_value_s) values;
 } htaccess_directive_kv_t;
 int htaccess_directive_kv_cmp(struct rb_directive_kv_s *,
                               struct rb_directive_kv_s *);
@@ -59,7 +75,7 @@ RB_PROTOTYPE(rb_directive_kv_list_head_t, rb_directive_kv_s, next, htaccess_dire
 typedef struct rb_file_s {
     RB_ENTRY(rb_file_s) next;
 
-    struct rb_directive_kv_list_head_t directive_kvs;
+    struct rb_directive_kv_list_head_t directives;
 
     char *filename;
 } htaccess_file_t;
@@ -84,10 +100,12 @@ typedef struct htaccess_ctx_s {
 } htaccess_ctx_t;
 
 
-htaccess_directive_kv_t *new_htaccess_directive_kv(const char *, char *, short);
+htaccess_directive_value_t *new_htaccess_directive_value(char *, unsigned short);
+htaccess_directive_kv_t *new_htaccess_directive_kv(htaccess_directive_map_t *);
 htaccess_file_t      *new_htaccess_file(void);
 htaccess_directory_t *new_htaccess_directory(void);
 htaccess_ctx_t       *new_htaccess_ctx(void);
+void free_htaccess_directive_value(htaccess_directive_value_t *);
 void free_htaccess_directive_kv(htaccess_directive_kv_t *);
 void free_htaccess_file(htaccess_file_t *);
 void free_htaccess_directory(htaccess_directory_t *);

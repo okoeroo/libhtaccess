@@ -6,13 +6,16 @@
 
 RB_GENERATE(directive_map_tree_t, rb_directive_map_s, entry, htaccess_directive_map_cmp)
 
-#define xdirective_map_add(xdirective, cstr) do {                     \
+#define xdirective_map_add(xdirective, cstr, pcnt, q) do {        \
         htaccess_directive_map_t *c = malloc(sizeof(htaccess_directive_map_t));  \
                                                                   \
         c->type = xdirective;                                     \
         c->str  = cstr;                                           \
+        c->len  = strlen(cstr);                                   \
+        c->par_cnt = pcnt;                                        \
+        c->quotation = q;                                         \
                                                                   \
-        RB_INSERT(directive_map_tree_t, &directive_map_head, c);            \
+        RB_INSERT(directive_map_tree_t, &directive_map_head, c);  \
 } while (0)
 
 
@@ -35,52 +38,53 @@ directive_map_list_init(void) {
     RB_INIT(&directive_map_head);
 
     /* Initializations */
-    xdirective_map_add(AUTHNAME, "AuthName");
-    xdirective_map_add(AUTHGROUPFILE, "AuthGroupFile");
-    xdirective_map_add(REQUIRE_GROUP, "Require Group");
-    xdirective_map_add(ORDER, "Order");
-    xdirective_map_add(DENY_FROM, "Deny From");
-    xdirective_map_add(ALLOW_FROM, "Allow From");
-    xdirective_map_add(AUTHTYPE, "AuthType");
-    xdirective_map_add(AUTHUSERFILE, "AuthUserFile");
-    xdirective_map_add(REQUIRE, "Require");
-    xdirective_map_add(REDIRECT, "Redirect");
-    xdirective_map_add(SETENVIF, "SetEnvIf");
-    xdirective_map_add(REWRITECOND, "RewriteCond");
-    xdirective_map_add(REWRITERULE, "RewriteRule");
-    xdirective_map_add(DIRECTORYINDEX, "DirectoryIndex");
-    xdirective_map_add(ADDHANDLER, "AddHandler");
-    xdirective_map_add(ERRORDOCUMENT, "ErrorDocument");
-    xdirective_map_add(ADDDEFAULTCHARSET, "AddDefaultCharset");
-    xdirective_map_add(CHARSETSOURCEENC, "CharsetSourceEnc");
+    xdirective_map_add(AUTHNAME, "AuthName", 1, HTA_MUST_QUOTE);
+    xdirective_map_add(AUTHGROUPFILE, "AuthGroupFile", 1, HTA_OPT_QUOTE);
+    xdirective_map_add(REQUIRE_GROUP, "Require Group", 1, HTA_NO_QUOTE);
+    xdirective_map_add(ORDER, "Order", 2, HTA_NO_QUOTE);
+    xdirective_map_add(DENY_FROM, "Deny From", 1, HTA_NO_QUOTE);
+    xdirective_map_add(ALLOW_FROM, "Allow From", 1, HTA_NO_QUOTE);
+    xdirective_map_add(AUTHTYPE, "AuthType", 1, HTA_NO_QUOTE);
+    xdirective_map_add(AUTHUSERFILE, "AuthUserFile", 1, HTA_OPT_QUOTE);
+    xdirective_map_add(REQUIRE, "Require", 1, HTA_NO_QUOTE);
+    xdirective_map_add(REDIRECT, "Redirect", 2, HTA_NO_QUOTE);
+    xdirective_map_add(SETENVIF, "SetEnvIf", 3, HTA_NO_QUOTE);
+    xdirective_map_add(REWRITECOND, "RewriteCond", 2, HTA_NO_QUOTE);
+    xdirective_map_add(REWRITERULE, "RewriteRule", 2, HTA_NO_QUOTE);
+    xdirective_map_add(DIRECTORYINDEX, "DirectoryIndex", 1, HTA_NO_QUOTE);
+    /* xdirective_map_add(ADDHANDLER, "AddHandler", 1-, HTA_NO_QUOTE); */
+    xdirective_map_add(ERRORDOCUMENT, "ErrorDocument", 2, HTA_NO_QUOTE);
+    xdirective_map_add(ADDDEFAULTCHARSET, "AddDefaultCharset", 1, HTA_NO_QUOTE);
+    xdirective_map_add(CHARSETSOURCEENC, "CharsetSourceEnc", 1, HTA_NO_QUOTE);
 
     xdirective_map_tree_initialized = 1;
     return;
 }
 
 htaccess_directive_map_t *
-search_directive_map(const char *s) {
-    htaccess_directive_map_t *dir_map_found, dir_map_search;
+search_directive_map_on_str(const char *s) {
+    htaccess_directive_map_t *dir_map_found;
 
-    dir_map_search.str = s;
-    dir_map_found = RB_FIND(directive_map_tree_t, &directive_map_head, &dir_map_search);
-
-    return dir_map_found;
-}
-
-const char *
-directive_map_to_str(htaccess_directive_type_t type) {
-    htaccess_directive_map_t c;
-    htaccess_directive_map_t *found;
-
-    c.type = type;
-
-    if (!(found = RB_FIND(directive_map_tree_t, &directive_map_head, &c))) {
-        return "unknown";
+    RB_FOREACH(dir_map_found, directive_map_tree_t, &directive_map_head) {
+        if (strncasecmp(s, dir_map_found->str, strlen(dir_map_found->str)) == 0) {
+            return dir_map_found;
+        }
     }
-
-    return found->str;
+    return NULL;
 }
+
+htaccess_directive_map_t *
+search_directive_map_on_type(htaccess_directive_type_t t) {
+    htaccess_directive_map_t *dir_map_found;
+
+    RB_FOREACH(dir_map_found, directive_map_tree_t, &directive_map_head) {
+        if (dir_map_found->type == t) {
+            return dir_map_found;
+        }
+    }
+    return NULL;
+}
+
 
 RB_GENERATE(rb_directive_kv_list_head_t, rb_directive_kv_s, next, htaccess_directive_kv_cmp)
 RB_GENERATE(rb_file_list_head_t, rb_file_s, next, htaccess_file_cmp)
@@ -93,11 +97,8 @@ int htaccess_directive_kv_cmp(struct rb_directive_kv_s *a,
         return 0;
 
     /* printf("htaccess_directive_kv_cmp(%s, %s)\n", a->directive_kvname, b->directive_kvname); */
-    rc = a->key - b->key;
-    if (rc == 0)
-        return strcmp(a->value, b->value);
-
-     return rc;
+    rc = a->key->type - b->key->type;
+    return rc;
 }
 
 int htaccess_file_cmp(struct rb_file_s *a,
@@ -121,15 +122,40 @@ htaccess_directory_cmp(htaccess_directory_t *a,
 
 
 
-/* new_htaccess_directive_kv() expects a key to be set.
+/* new_htaccess_directive_value()
    v_loc: set to 0, and new_htaccess_directive_kv() will NOT allocate memory.
           The expectation is that the caller has already allocated the memory
           for the key.
           set to 1, and new_htaccess_directive_kv() will allocate memory for
           the null-terminated string.
  */
+htaccess_directive_value_t *
+new_htaccess_directive_value(char *value, unsigned short v_loc) {
+    htaccess_directive_value_t *d_val;
+    if (!value)
+        return NULL;
+
+    d_val = malloc(sizeof(htaccess_directive_value_t));
+    if (!d_val)
+        return NULL;
+
+    d_val->v_loc = v_loc;
+    if (d_val->v_loc) {
+        d_val->value = strdup(value);
+        if (!d_val->value)
+            goto error;
+    } else {
+        d_val->value = value;
+    }
+
+    return d_val;
+error:
+    free(d_val);
+    return NULL;
+}
+
 htaccess_directive_kv_t *
-new_htaccess_directive_kv(const char *key, char *value, short v_loc) {
+new_htaccess_directive_kv(htaccess_directive_map_t *key) {
     htaccess_directive_kv_t *hta_dir_kv;
 
     if (!key)
@@ -139,18 +165,10 @@ new_htaccess_directive_kv(const char *key, char *value, short v_loc) {
     if (!hta_dir_kv)
         return NULL;
 
-    memset(hta_dir_kv, 0, sizeof(htaccess_directive_kv_t));
-
-    if (v_loc && value) {
-        hta_dir_kv->value = strdup(value);
-        if (!hta_dir_kv->value)
-            goto error;
-    }
+    hta_dir_kv->key = key;
+    TAILQ_INIT(&(hta_dir_kv->values));
 
     return hta_dir_kv;
-error:
-    free(hta_dir_kv);
-    return NULL;
 }
 
 htaccess_file_t *
@@ -205,11 +223,22 @@ error:
 }
 
 void
+free_htaccess_directive_value(htaccess_directive_value_t *val) {
+    if (!val)
+        return;
+
+    if (val->v_loc)
+        free(val->value);
+
+    free(val);
+    return;
+}
+
+void
 free_htaccess_directive_kv(htaccess_directive_kv_t *kv) {
     if (!kv)
         return;
 
-    free(kv->value);
     free(kv);
     return;
 }
