@@ -9,6 +9,20 @@
 #include "htaccess/queue.h"
 #include "htaccess/tree.h"
 
+typedef struct rb_filepath_s {
+    RB_ENTRY(rb_filepath_s) entry;
+
+    const char *path;
+} htaccess_filepath_t;
+
+int htaccess_filepath_cmp(htaccess_filepath_t *, htaccess_filepath_t *);
+RB_HEAD(rb_filepath_tree_t, rb_filepath_s);
+RB_PROTOTYPE(rb_filepath_tree_t, rb_filepath_s, entry, htaccess_filepath_cmp)
+
+htaccess_filepath_t *new_htaccess_filepath(void);
+void free_htaccess_filepath(htaccess_filepath_t *);
+
+
 typedef enum htaccess_directives_e {
     NO_DIRECTIVE = 0,
     AUTHNAME,
@@ -100,6 +114,7 @@ typedef struct htaccess_ctx_s {
     size_t lineno;
     size_t indent;
     struct rb_directory_list_head_t directories;
+    struct rb_filepath_tree_t paths;
 } htaccess_ctx_t;
 
 
@@ -134,6 +149,10 @@ char *htaccess_copy_string(const char *);
 int htaccess_parse_directives(const char *, htaccess_file_t *);
 int htaccess_parse_files(const char *, htaccess_directory_t *);
 int htaccess_parse_directory(const char *, htaccess_ctx_t *);
+
+htaccess_filepath_t *htaccess_search_filepath(htaccess_ctx_t *, char *);
+void htaccess_add_filepath(htaccess_ctx_t *, char *);
+void htaccess_process_ctx(htaccess_ctx_t *);
 
 void htaccess_print_ctx(htaccess_ctx_t *);
 
