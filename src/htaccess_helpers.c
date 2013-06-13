@@ -215,8 +215,10 @@ new_htaccess_ctx(void) {
         goto error;
 
     RB_INIT(&(ctx->directories));
-    return ctx;
+    ctx->lineno = 0;
+    ctx->indent = 0;
 
+    return ctx;
 error:
     free(ctx);
     return NULL;
@@ -347,7 +349,7 @@ htaccess_copy_string(const char *buf) {
             break;
         i++;
     }
-done:
+
     str = malloc(i + 1);
     if (!str)
         return NULL;

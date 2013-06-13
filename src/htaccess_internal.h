@@ -97,6 +97,8 @@ RB_HEAD(rb_directory_list_head_t, rb_directory_s);
 RB_PROTOTYPE(rb_directory_list_head_t, rb_directory_s, next, htaccess_directory_cmp)
 
 typedef struct htaccess_ctx_s {
+    size_t lineno;
+    size_t indent;
     struct rb_directory_list_head_t directories;
 } htaccess_ctx_t;
 
@@ -129,9 +131,11 @@ int htaccess_count_token(const char *, const char *);
 char *htaccess_str_returned_upto_EOL(const char *);
 char *htaccess_copy_string(const char *);
 
-int htaccess_parse_directives(const char *, int *, htaccess_file_t *);
-int htaccess_parse_files(const char *, int *, int *, htaccess_directory_t *);
-int htaccess_parse_directory(const char *, int *, int *, htaccess_ctx_t *);
+int htaccess_parse_directives(const char *, htaccess_file_t *);
+int htaccess_parse_files(const char *, htaccess_directory_t *);
+int htaccess_parse_directory(const char *, htaccess_ctx_t *);
+
+void htaccess_print_ctx(htaccess_ctx_t *);
 
 #endif /* HTACCESS_INTERNAL_H */
 
