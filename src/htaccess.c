@@ -3,10 +3,17 @@
 
 
 int
-htaccess_parse_and_load(const char *buf) {
+htaccess_parse_and_load(const char *fname) {
     int rc;
+    char *buf;
     htaccess_ctx_t *ht_ctx;
-    htaccess_directive_kv_t *hta_dir_kv_found, hta_dir_kv_search;
+
+    buf = htaccess_readfile(fname);
+    if (!buf) {
+        printf("Reading the htaccess file \"%s\" into a buffer failed.\n",
+                fname);
+        return 1;
+    }
 
     ht_ctx = new_htaccess_ctx();
     if (!ht_ctx)
@@ -22,33 +29,3 @@ htaccess_parse_and_load(const char *buf) {
     return 0;
 }
 
-char *
-htaccess_readfile(const char *fname) {
-    FILE *fp;
-    size_t size;
-    char *buf = NULL;
-
-    fp = fopen(fname, "r");
-    if (!fp)
-        goto final;
-
-    fseek(fp, 0, SEEK_END);
-    size = ftell(fp);
-    fseek(fp, 0, SEEK_SET);
-
-    buf = malloc(size);
-    if (!buf)
-        goto final;
-
-    if (fread(buf, 1, size, fp) != size) {
-        goto final;
-    }
-    buf[size] = '\0';
-
-    fclose(fp);
-    return buf;
-
-final:
-    free(buf);
-    return NULL;
-}

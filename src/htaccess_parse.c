@@ -224,6 +224,53 @@ htaccess_parse_directory(const char *buf,
     return 0;
 }
 
+int
+htaccess_parse_htpasswd(htaccess_filepath_t *hta_path) {
+    size_t i, il;
+    char *buf, *line, *username, *pwhash;
+    htaccess_htpasswd_t *pw;
+
+    if (!hta_path || !hta_path->path || hta_path->done)
+        return 1;
+
+    printf("Should read %s, going to read /tmp/htpasswd\n", hta_path->path);
+    buf = htaccess_readfile(hta_path->path);
+    /* buf = htaccess_readfile("/tmp/htpasswd"); */
+    if (!buf)
+        return 1;
+
+    for (i = 0; buf != '\0'; i++) {
+        if (buf[i] == '\n')
+            continue;
+
+        line = htaccess_str_returned_upto_EOL(&buf[i]);
+        if (!line || strlen(line) == 0)
+            break;
+
+        username = htaccess_str_returned_upto_colon(line);
+        il = strlen(username) + 1;
+        pwhash = strdup(&line[il]);
+
+        pw = new_htaccess_htpasswd();
+        pw->username = username;
+        pw->pwhash   = pwhash;
+
+        RB_INSERT(rb_htpasswd_tree_t, &(hta_path->htpasswd), pw);
+
+        printf("        : %d\n", i);
+        i += strlen(line) - 1;
+
+        printf("line    : \"%s\" %d\n", line, strlen(line));
+        printf("username: \"%s\" %d\n", username, strlen(username));
+        printf("pwhash  : \"%s\" %d\n", pwhash, strlen(pwhash));
+        printf("        : %d\n", i);
+        free(line);
+    }
+    printf("foo!\n");
+
+    hta_path->done = 1;
+    return 0;
+}
 
 void
 htaccess_print_ctx(htaccess_ctx_t *ht_ctx) {

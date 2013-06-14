@@ -3,6 +3,28 @@
 
 
 /***** RB stuff *****/
+RB_GENERATE(rb_htpasswd_tree_t, rb_htpasswd_s, entry, htaccess_htpasswd_cmp)
+RB_GENERATE(rb_htgroup_tree_t, rb_htgroup_s, entry, htaccess_htgroup_cmp)
+
+int htaccess_htpasswd_cmp(htaccess_htpasswd_t *a, htaccess_htpasswd_t *b) {
+    if ((!a && !b) || (!a->username && !b->username))
+        return 0;
+
+    return strcmp(a->username, b->username);
+}
+
+int htaccess_htgroup_cmp(htaccess_htgroup_t *a, htaccess_htgroup_t *b) {
+    int rc;
+    if ((!a && !b) || (!a->groupname && !b->groupname))
+        return 0;
+
+    rc = strcmp(a->groupname, b->groupname);
+    if (rc != 0)
+        return rc;
+
+    return strcmp(a->username, b->username);
+}
+
 RB_GENERATE(rb_filepath_tree_t, rb_filepath_s, entry, htaccess_filepath_cmp)
 
 int htaccess_filepath_cmp(htaccess_filepath_t *a, htaccess_filepath_t *b) {
@@ -10,6 +32,51 @@ int htaccess_filepath_cmp(htaccess_filepath_t *a, htaccess_filepath_t *b) {
         return 0;
 
     return strcmp(a->path, b->path);
+}
+
+
+htaccess_htpasswd_t *new_htaccess_htpasswd(void) {
+    htaccess_htpasswd_t *pw;
+
+    pw = malloc(sizeof(htaccess_htpasswd_t));
+    if (!pw)
+        return NULL;
+
+    pw->username = NULL;
+    pw->pwhash   = NULL;
+
+    return pw;
+}
+
+void free_htaccess_htpasswd(htaccess_htpasswd_t *pw) {
+    if (!pw)
+        return;
+
+    free(pw->username);
+    free(pw->pwhash);
+    free(pw);
+}
+
+htaccess_htgroup_t *new_htaccess_htgroup(void) {
+    htaccess_htgroup_t *gr;
+
+    gr = malloc(sizeof(htaccess_htgroup_t));
+    if (!gr)
+        return NULL;
+
+    gr->groupname = NULL;
+    gr->username  = NULL;
+
+    return gr;
+}
+
+void free_htaccess_htgroup(htaccess_htgroup_t *gr) {
+    if (!gr)
+        return;
+
+    free(gr->groupname);
+    free(gr->username);
+    free(gr);
 }
 
 htaccess_filepath_t *
@@ -20,11 +87,17 @@ new_htaccess_filepath(void) {
     if (!filepath)
         return NULL;
 
+    filepath->done = 0;
+    RB_INIT(&(filepath->htpasswd));
+    RB_INIT(&(filepath->htgroup));
+
     return filepath;
 }
 
 void
 free_htaccess_filepath(htaccess_filepath_t *filepath) {
+    /* RB_INIT(&(filepath->htpasswd)); */
+    /* RB_INIT(&(filepath->htgroup)); */
     free(filepath);
 }
 
@@ -36,21 +109,21 @@ htaccess_search_filepath(htaccess_ctx_t *ht_ctx, char *path) {
     return RB_FIND(rb_filepath_tree_t, &(ht_ctx->paths), &search);
 }
 
-void
+htaccess_filepath_t *
 htaccess_add_filepath(htaccess_ctx_t *ht_ctx, char *path) {
     htaccess_filepath_t *hta_filepath;
 
     hta_filepath = htaccess_search_filepath(ht_ctx, path);
     if (hta_filepath)
-        return;
+        return hta_filepath;
 
     hta_filepath = malloc(sizeof(htaccess_filepath_t));
     if (!hta_filepath)
-        return;
+        return NULL;
 
     hta_filepath->path = path;
     RB_INSERT(rb_filepath_tree_t, &(ht_ctx->paths), hta_filepath);
-    return;
+    return hta_filepath;
 }
 
 void
@@ -58,6 +131,7 @@ htaccess_process_ctx(htaccess_ctx_t *ht_ctx) {
     htaccess_directory_t *hta_dir;
     htaccess_file_t *hta_file;
     htaccess_directive_value_t *hta_dir_value;
+    htaccess_filepath_t *hta_filepath;
     htaccess_directive_kv_t *hta_dir_kv_found, hta_dir_kv_search;
 
 #if 0
@@ -79,14 +153,18 @@ htaccess_process_ctx(htaccess_ctx_t *ht_ctx) {
 
                     /* Idea: 1. add it to the ctx.
                              2. add it to the hta_dir_value, parsed as AUTHGROUPFILE or AUTHUSERFILE object. */
-                    htaccess_add_filepath(ht_ctx, hta_dir_value->value);
+                    hta_filepath = htaccess_add_filepath(ht_ctx, hta_dir_value->value);
+                    hta_dir_value->filepath = hta_filepath;
+
+                    htaccess_parse_htpasswd(hta_dir_value->filepath);
                 }
             }
 
         }
     }
 
-    htaccess_filepath_t *hta_filepath;
+    printf("Got it\n");
+
     RB_FOREACH(hta_filepath, rb_filepath_tree_t, &(ht_ctx->paths)) {
         printf("path: %s\n", hta_filepath->path);
     }
@@ -457,6 +535,27 @@ htaccess_copy_string(const char *buf) {
 }
 
 char *
+htaccess_str_returned_upto_colon(const char *buf) {
+    int i = 0;
+    char *str;
+
+    while (1) {
+        if (buf[i] == '\0' || buf[i] == ':')
+            break;
+        else
+            i++;
+    }
+    str = malloc(i + 1);
+    if (!str)
+        return NULL;
+
+    memcpy(str, buf, i);
+    str[i] = '\0';
+
+    return str;
+}
+
+char *
 htaccess_str_returned_upto_EOL(const char *buf) {
     int i = 0;
     char *str;
@@ -477,3 +576,33 @@ htaccess_str_returned_upto_EOL(const char *buf) {
     return str;
 }
 
+char *
+htaccess_readfile(const char *fname) {
+    FILE *fp;
+    size_t size;
+    char *buf = NULL;
+
+    fp = fopen(fname, "r");
+    if (!fp)
+        goto final;
+
+    fseek(fp, 0, SEEK_END);
+    size = ftell(fp);
+    fseek(fp, 0, SEEK_SET);
+
+    buf = malloc(size);
+    if (!buf)
+        goto final;
+
+    if (fread(buf, 1, size, fp) != size) {
+        goto final;
+    }
+    buf[size] = '\0';
+
+    fclose(fp);
+    return buf;
+
+final:
+    free(buf);
+    return NULL;
+}

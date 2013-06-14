@@ -9,20 +9,6 @@
 #include "htaccess/queue.h"
 #include "htaccess/tree.h"
 
-typedef struct rb_filepath_s {
-    RB_ENTRY(rb_filepath_s) entry;
-
-    const char *path;
-} htaccess_filepath_t;
-
-int htaccess_filepath_cmp(htaccess_filepath_t *, htaccess_filepath_t *);
-RB_HEAD(rb_filepath_tree_t, rb_filepath_s);
-RB_PROTOTYPE(rb_filepath_tree_t, rb_filepath_s, entry, htaccess_filepath_cmp)
-
-htaccess_filepath_t *new_htaccess_filepath(void);
-void free_htaccess_filepath(htaccess_filepath_t *);
-
-
 typedef enum htaccess_directives_e {
     NO_DIRECTIVE = 0,
     AUTHNAME,
@@ -44,6 +30,55 @@ typedef enum htaccess_directives_e {
     ADDDEFAULTCHARSET,
     CHARSETSOURCEENC
 } htaccess_directive_type_t;
+
+typedef struct rb_htpasswd_s {
+    RB_ENTRY(rb_htpasswd_s) entry;
+
+    char *username;
+    char *pwhash;
+} htaccess_htpasswd_t;
+
+int htaccess_htpasswd_cmp(htaccess_htpasswd_t *, htaccess_htpasswd_t *);
+RB_HEAD(rb_htpasswd_tree_t, rb_htpasswd_s);
+RB_PROTOTYPE(rb_htpasswd_tree_t, rb_htpasswd_s, entry, htaccess_htpasswd_cmp)
+
+htaccess_htpasswd_t *new_htaccess_htpasswd(void);
+void free_htaccess_htpasswd(htaccess_htpasswd_t *);
+
+typedef struct rb_htgroup_s {
+    RB_ENTRY(rb_htgroup_s) entry;
+
+    char *groupname;
+    char *username;
+} htaccess_htgroup_t;
+
+int htaccess_htgroup_cmp(htaccess_htgroup_t *, htaccess_htgroup_t *);
+RB_HEAD(rb_htgroup_tree_t, rb_htgroup_s);
+RB_PROTOTYPE(rb_htgroup_tree_t, rb_htgroup_s, entry, htaccess_htgroup_cmp)
+
+htaccess_htgroup_t *new_htaccess_htgroup(void);
+void free_htaccess_htgroup(htaccess_htgroup_t *);
+
+
+typedef struct rb_filepath_s {
+    RB_ENTRY(rb_filepath_s) entry;
+
+    unsigned short done;
+    char *path; /* Never allocated! */
+    htaccess_directive_type_t type;
+
+    struct rb_htpasswd_tree_t htpasswd;
+    struct rb_htgroup_tree_t  htgroup;
+} htaccess_filepath_t;
+
+int htaccess_filepath_cmp(htaccess_filepath_t *, htaccess_filepath_t *);
+RB_HEAD(rb_filepath_tree_t, rb_filepath_s);
+RB_PROTOTYPE(rb_filepath_tree_t, rb_filepath_s, entry, htaccess_filepath_cmp)
+
+htaccess_filepath_t *new_htaccess_filepath(void);
+void free_htaccess_filepath(htaccess_filepath_t *);
+
+
 
 typedef enum directive_quotation_e {
     HTA_MUST_QUOTE,
@@ -74,6 +109,8 @@ typedef struct tq_directive_value_s {
     TAILQ_ENTRY(tq_directive_value_s) next;
     unsigned short v_loc;
     char *value;
+
+    htaccess_filepath_t *filepath;
 } htaccess_directive_value_t;
 
 typedef struct rb_directive_kv_s {
@@ -143,18 +180,22 @@ enum parser_state_e {
 
 char *htaccess_parse_quoted_string(const char *);
 int htaccess_count_token(const char *, const char *);
+char *htaccess_str_returned_upto_colon(const char *);
 char *htaccess_str_returned_upto_EOL(const char *);
 char *htaccess_copy_string(const char *);
 
 int htaccess_parse_directives(const char *, htaccess_file_t *);
 int htaccess_parse_files(const char *, htaccess_directory_t *);
 int htaccess_parse_directory(const char *, htaccess_ctx_t *);
+int htaccess_parse_htpasswd(htaccess_filepath_t *);
 
 htaccess_filepath_t *htaccess_search_filepath(htaccess_ctx_t *, char *);
-void htaccess_add_filepath(htaccess_ctx_t *, char *);
+htaccess_filepath_t *htaccess_add_filepath(htaccess_ctx_t *, char *);
 void htaccess_process_ctx(htaccess_ctx_t *);
+char *htaccess_readfile(const char *);
 
 void htaccess_print_ctx(htaccess_ctx_t *);
+
 
 #endif /* HTACCESS_INTERNAL_H */
 
