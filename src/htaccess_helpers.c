@@ -160,6 +160,20 @@ htaccess_process_ctx(htaccess_ctx_t *ht_ctx) {
                 }
             }
 
+            hta_dir_kv_search.key = search_directive_map_on_type(AUTHUSERFILE);
+            hta_dir_kv_found = RB_FIND(rb_directive_kv_list_head_t, &(hta_file->directives), &hta_dir_kv_search);
+            if (hta_dir_kv_found) {
+                TAILQ_FOREACH(hta_dir_value, &(hta_dir_kv_found->values), next) {
+                    /* printf("\t\t\thta_dir_value->value: %s\n", hta_dir_value->value); */
+
+                    /* Idea: 1. add it to the ctx.
+                             2. add it to the hta_dir_value, parsed as AUTHGROUPFILE or AUTHUSERFILE object. */
+                    hta_filepath = htaccess_add_filepath(ht_ctx, hta_dir_value->value);
+                    hta_dir_value->filepath = hta_filepath;
+
+                    htaccess_parse_htgroup(hta_dir_value->filepath);
+                }
+            }
         }
     }
 

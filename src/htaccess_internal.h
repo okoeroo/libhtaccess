@@ -188,6 +188,7 @@ int htaccess_parse_directives(const char *, htaccess_file_t *);
 int htaccess_parse_files(const char *, htaccess_directory_t *);
 int htaccess_parse_directory(const char *, htaccess_ctx_t *);
 int htaccess_parse_htpasswd(htaccess_filepath_t *);
+int htaccess_parse_htgroup(htaccess_filepath_t *);
 
 htaccess_filepath_t *htaccess_search_filepath(htaccess_ctx_t *, char *);
 htaccess_filepath_t *htaccess_add_filepath(htaccess_ctx_t *, char *);

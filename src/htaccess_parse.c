@@ -225,6 +225,54 @@ htaccess_parse_directory(const char *buf,
 }
 
 int
+htaccess_parse_htgroup(htaccess_filepath_t *hta_path) {
+    size_t i, il;
+    char *buf, *line, *username, *groupname;
+    htaccess_htgroup_t *gr;
+
+    if (!hta_path || !hta_path->path || hta_path->done)
+        return 1;
+
+    printf("Should read %s, going to read /tmp/htpasswd\n", hta_path->path);
+    /* buf = htaccess_readfile(hta_path->path); */
+    buf = htaccess_readfile("test/group0");
+    if (!buf)
+        return 1;
+
+    for (i = 0; buf != '\0'; i++) {
+        if (buf[i] == '\n')
+            continue;
+
+        line = htaccess_str_returned_upto_EOL(&buf[i]);
+        if (!line || strlen(line) == 0)
+            break;
+
+        groupname = htaccess_str_returned_upto_colon(line);
+        il = strlen(groupname) + 1;
+
+        do {
+            username = htaccess_copy_string(&line[il]);
+            if (!username)
+                break;
+
+            gr = new_htaccess_htgroup();
+            gr->groupname = groupname;
+            gr->username = username;
+
+            RB_INSERT(rb_htgroup_tree_t, &(hta_path->htgroup), gr);
+
+        } while (1);
+
+        i += strlen(line) - 1;
+        free(line);
+    }
+    printf("foo!\n");
+
+    hta_path->done = 1;
+    return 0;
+}
+
+int
 htaccess_parse_htpasswd(htaccess_filepath_t *hta_path) {
     size_t i, il;
     char *buf, *line, *username, *pwhash;
