@@ -58,9 +58,7 @@ htaccess_parse_directives(htaccess_ctx_t *ht_ctx, const char *buf, htaccess_file
             RB_INSERT(rb_directive_kv_list_head_t, &(hta_file->directives), hta_dir_kv);
             continue;
         } else {
-            printf("Unknown directive\n");
-            printf("---->%.70s<----\n", &buf[i]);
-
+            htaccess_add_error(ht_ctx, "Unknown directive at \"%s\"", &buf[i]);
             return -1;
         }
     }
@@ -91,7 +89,7 @@ htaccess_parse_files(htaccess_ctx_t *ht_ctx, const char *buf, htaccess_directory
 
             /* printf("RB_INSERT(rb_file_list_head_t, &(hta_dir->files), hta_file);\n"); */
             if (!hta_file) {
-                printf("FAIL! no hta_dir\n");
+                htaccess_add_error(ht_ctx, "Expected an htaccess_file_t object");
                 return -1;
             }
             RB_INSERT(rb_file_list_head_t, &(hta_dir->files), hta_file);
@@ -108,7 +106,7 @@ htaccess_parse_files(htaccess_ctx_t *ht_ctx, const char *buf, htaccess_directory
 
             hta_file = new_htaccess_file();
             if (!hta_file) {
-                printf("Unable to construct a new file entry\n");
+                htaccess_add_error(ht_ctx, "Unable to construct a new htaccess_file_t object");
                 return -1;
             }
 
@@ -123,7 +121,7 @@ htaccess_parse_files(htaccess_ctx_t *ht_ctx, const char *buf, htaccess_directory
             i += strlen(str) + 2;
 
             if (!hta_file) {
-                printf("Unable to find a file entry\n");
+                htaccess_add_error(ht_ctx, "Expected an htaccess_file_t object");
                 return -1;
             }
             hta_file->filename = str;
@@ -138,7 +136,7 @@ htaccess_parse_files(htaccess_ctx_t *ht_ctx, const char *buf, htaccess_directory
             i += rc;
             continue;
         } else {
-            printf("Parse error: \"%.20s\n", &buf[i]);
+            htaccess_add_error(ht_ctx, "Parse error at \"%.30s\"\n", &buf[i]);
             return -1;
         }
     }
