@@ -4,6 +4,7 @@
 
 int
 main (int argc, char *argv[]) {
+    htaccess_ctx_t *ht_ctx;
     const char *fname = NULL;
 
     if (argc != 2) {
@@ -12,6 +13,16 @@ main (int argc, char *argv[]) {
     }
     fname = argv[1];
 
-    return htaccess_parse_and_load(fname);
+    ht_ctx = new_htaccess_ctx();
+    if (!ht_ctx)
+        return 1;
+
+    if (htaccess_parse_file(ht_ctx, fname) != 0) {
+        printf("htaccess_parse_file() failed!\n");
+    }
+
+
+
+    return 0;
 }
 
