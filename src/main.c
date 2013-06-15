@@ -22,7 +22,7 @@ main (int argc, char *argv[]) {
     }
 
 
-
+    htaccess_print_ctx(ht_ctx);
 
     return 0;
 }
