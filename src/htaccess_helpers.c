@@ -131,14 +131,8 @@ htaccess_process_ctx(htaccess_ctx_t *ht_ctx) {
     htaccess_directory_t *hta_dir;
     htaccess_file_t *hta_file;
     htaccess_directive_value_t *hta_dir_value;
-    htaccess_filepath_t *hta_filepath;
     htaccess_directive_kv_t *hta_dir_kv_found, hta_dir_kv_search;
-
-#if 0
-    htaccess_print_ctx(ht_ctx);
-#endif
-
-    printf("----------\n");
+    htaccess_filepath_t *hta_filepath;
 
     RB_FOREACH(hta_dir, rb_directory_list_head_t, &(ht_ctx->directories)) {
         RB_FOREACH(hta_file, rb_file_list_head_t, &(hta_dir->files)) {
@@ -156,7 +150,7 @@ htaccess_process_ctx(htaccess_ctx_t *ht_ctx) {
                     hta_filepath = htaccess_add_filepath(ht_ctx, hta_dir_value->value);
                     hta_dir_value->filepath = hta_filepath;
 
-                    htaccess_parse_htpasswd(hta_dir_value->filepath);
+                    htaccess_parse_htgroup(hta_dir_value->filepath);
                 }
             }
 
@@ -171,17 +165,16 @@ htaccess_process_ctx(htaccess_ctx_t *ht_ctx) {
                     hta_filepath = htaccess_add_filepath(ht_ctx, hta_dir_value->value);
                     hta_dir_value->filepath = hta_filepath;
 
-                    htaccess_parse_htgroup(hta_dir_value->filepath);
+                    htaccess_parse_htpasswd(hta_dir_value->filepath);
                 }
             }
         }
     }
 
-    printf("Got it\n");
+#if 0
+    htaccess_print_ctx(ht_ctx);
+#endif
 
-    RB_FOREACH(hta_filepath, rb_filepath_tree_t, &(ht_ctx->paths)) {
-        printf("path: %s\n", hta_filepath->path);
-    }
     return;
 }
 

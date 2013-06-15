@@ -230,10 +230,10 @@ htaccess_parse_htgroup(htaccess_filepath_t *hta_path) {
     char *buf, *line, *username, *groupname;
     htaccess_htgroup_t *gr;
 
+
     if (!hta_path || !hta_path->path || hta_path->done)
         return 1;
 
-    printf("Should read %s, going to read /tmp/htpasswd\n", hta_path->path);
     /* buf = htaccess_readfile(hta_path->path); */
     buf = htaccess_readfile("test/group0");
     if (!buf)
@@ -250,7 +250,12 @@ htaccess_parse_htgroup(htaccess_filepath_t *hta_path) {
         groupname = htaccess_str_returned_upto_colon(line);
         il = strlen(groupname) + 1;
 
-        do {
+        while (line[il] != '\0') {
+            if (line[il] == '\t' || line[il] == ' ') {
+                il++;
+                continue;
+            }
+
             username = htaccess_copy_string(&line[il]);
             if (!username)
                 break;
@@ -260,13 +265,12 @@ htaccess_parse_htgroup(htaccess_filepath_t *hta_path) {
             gr->username = username;
 
             RB_INSERT(rb_htgroup_tree_t, &(hta_path->htgroup), gr);
-
-        } while (1);
+            il += strlen(username);
+        }
 
         i += strlen(line) - 1;
         free(line);
     }
-    printf("foo!\n");
 
     hta_path->done = 1;
     return 0;
@@ -305,16 +309,9 @@ htaccess_parse_htpasswd(htaccess_filepath_t *hta_path) {
 
         RB_INSERT(rb_htpasswd_tree_t, &(hta_path->htpasswd), pw);
 
-        printf("        : %d\n", i);
         i += strlen(line) - 1;
-
-        printf("line    : \"%s\" %d\n", line, strlen(line));
-        printf("username: \"%s\" %d\n", username, strlen(username));
-        printf("pwhash  : \"%s\" %d\n", pwhash, strlen(pwhash));
-        printf("        : %d\n", i);
         free(line);
     }
-    printf("foo!\n");
 
     hta_path->done = 1;
     return 0;
@@ -326,6 +323,10 @@ htaccess_print_ctx(htaccess_ctx_t *ht_ctx) {
     htaccess_file_t *hta_file;
     htaccess_directive_kv_t *hta_dir_kv;
     htaccess_directive_value_t *hta_dir_value;
+    htaccess_htpasswd_t *pw;
+    htaccess_htgroup_t *gr;
+    htaccess_filepath_t *hta_filepath;
+
 
     RB_FOREACH(hta_dir, rb_directory_list_head_t, &(ht_ctx->directories)) {
         printf("hta_dir->dirname: %s\n", hta_dir->dirname);
@@ -335,9 +336,26 @@ htaccess_print_ctx(htaccess_ctx_t *ht_ctx) {
                 printf("\t\thta_dir_kv->key->str: %s\n", hta_dir_kv->key->str);
                 TAILQ_FOREACH(hta_dir_value, &(hta_dir_kv->values), next) {
                     printf("\t\t\thta_dir_value->value: %s\n", hta_dir_value->value);
+
+                    if (hta_dir_kv->key->type == AUTHUSERFILE) {
+                        RB_FOREACH(pw, rb_htpasswd_tree_t, &(hta_dir_value->filepath->htpasswd)) {
+                            printf("\t\t\t\tusername: \"%s\" password hash: \"%s\"\n",
+                                    pw->username,
+                                    pw->pwhash);
+                        }
+                    } else if (hta_dir_kv->key->type == AUTHGROUPFILE) {
+                        RB_FOREACH(gr, rb_htgroup_tree_t, &(hta_dir_value->filepath->htgroup)) {
+                            printf("\t\t\t\tgroupname: \"%s\" username: \"%s\"\n",
+                                    gr->groupname,
+                                    gr->username);
+                        }
+                    }
                 }
             }
         }
+    }
+    RB_FOREACH(hta_filepath, rb_filepath_tree_t, &(ht_ctx->paths)) {
+        printf("path: %s\n", hta_filepath->path);
     }
 
     return;
