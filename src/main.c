@@ -18,8 +18,9 @@ main (int argc, char *argv[]) {
         return 1;
 
     if (htaccess_parse_file(ht_ctx, fname) != 0) {
-        printf("htaccess_parse_file() failed!\n");
+        printf("htaccess_parse_file() failed! Error: %s\n", htaccess_get_error(ht_ctx));
     }
+
 
 
 

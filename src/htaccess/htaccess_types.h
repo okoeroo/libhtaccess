@@ -5,6 +5,8 @@
 #include "htaccess/queue.h"
 #include "htaccess/tree.h"
 
+#define HTACCESS_MAX_ERROR_STR 1024
+
 typedef enum htaccess_directives_e {
     NO_DIRECTIVE = 0,
     AUTHNAME,
@@ -107,6 +109,9 @@ RB_HEAD(rb_directory_list_head_t, rb_directory_s);
 typedef struct htaccess_ctx_s {
     size_t lineno;
     size_t indent;
+
+    char *error;
+
     struct rb_directory_list_head_t directories;
     struct rb_filepath_tree_t paths;
 } htaccess_ctx_t;

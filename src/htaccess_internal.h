@@ -5,10 +5,11 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+#include <stdarg.h>
 
-#include "htaccess/htaccess_types.h"
 #include "htaccess/queue.h"
 #include "htaccess/tree.h"
+#include "htaccess/htaccess_types.h"
 
 
 int htaccess_htpasswd_cmp(htaccess_htpasswd_t *, htaccess_htpasswd_t *);
@@ -72,11 +73,11 @@ char *htaccess_str_returned_upto_colon(const char *);
 char *htaccess_str_returned_upto_EOL(const char *);
 char *htaccess_copy_string(const char *);
 
-int htaccess_parse_directives(const char *, htaccess_file_t *);
-int htaccess_parse_files(const char *, htaccess_directory_t *);
-int htaccess_parse_directory(const char *, htaccess_ctx_t *);
-int htaccess_parse_htpasswd(htaccess_filepath_t *);
-int htaccess_parse_htgroup(htaccess_filepath_t *);
+int htaccess_parse_directives(htaccess_ctx_t *, const char *, htaccess_file_t *);
+int htaccess_parse_files(htaccess_ctx_t *, const char *, htaccess_directory_t *);
+int htaccess_parse_directory(htaccess_ctx_t *, const char *);
+int htaccess_parse_htpasswd(htaccess_ctx_t *, htaccess_filepath_t *);
+int htaccess_parse_htgroup(htaccess_ctx_t *, htaccess_filepath_t *);
 
 htaccess_filepath_t *htaccess_search_filepath(htaccess_ctx_t *, char *);
 htaccess_filepath_t *htaccess_add_filepath(htaccess_ctx_t *, char *);
@@ -85,6 +86,11 @@ char *htaccess_readfile(const char *);
 
 void htaccess_print_ctx(htaccess_ctx_t *);
 
+/* Error string handling */
+int htaccess_set_error(htaccess_ctx_t *, const char *, ...);
+int htaccess_add_error(htaccess_ctx_t *, const char *, ...);
+char *htaccess_get_error(htaccess_ctx_t *);
+void htaccess_clear_error(htaccess_ctx_t *);
 
 #endif /* HTACCESS_INTERNAL_H */
 

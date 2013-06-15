@@ -8,9 +8,9 @@ htaccess_parse_buffer(htaccess_ctx_t *ht_ctx, char *buf) {
     if (!ht_ctx || !buf)
         return 1;
 
-    rc = htaccess_parse_directory(buf, ht_ctx);
+    rc = htaccess_parse_directory(ht_ctx, buf);
     if (rc < 0) {
-        printf("Parsing failed\n");
+        htaccess_add_error(ht_ctx, "Failed to parse buffer");
         return 1;
     }
 
@@ -20,7 +20,6 @@ htaccess_parse_buffer(htaccess_ctx_t *ht_ctx, char *buf) {
 
 int
 htaccess_parse_file(htaccess_ctx_t *ht_ctx, const char *fname) {
-    int rc;
     char *buf;
 
     if (!ht_ctx || !fname)
@@ -28,10 +27,10 @@ htaccess_parse_file(htaccess_ctx_t *ht_ctx, const char *fname) {
 
     buf = htaccess_readfile(fname);
     if (!buf) {
-        printf("Reading the htaccess file \"%s\" into a buffer failed.\n",
-                fname);
+        htaccess_add_error(ht_ctx, "Failed to read the htaccess file \"%s\"", fname);
         return 1;
     }
 
     return htaccess_parse_buffer(ht_ctx, buf);
 }
+

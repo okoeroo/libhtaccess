@@ -3,7 +3,7 @@
 
 
 int
-htaccess_parse_directives(const char *buf, htaccess_file_t *hta_file) {
+htaccess_parse_directives(htaccess_ctx_t *ht_ctx, const char *buf, htaccess_file_t *hta_file) {
     unsigned int i;
     char *str;
     htaccess_directive_map_t *hta_dir_map;
@@ -69,7 +69,7 @@ htaccess_parse_directives(const char *buf, htaccess_file_t *hta_file) {
 
 
 int
-htaccess_parse_files(const char *buf, htaccess_directory_t *hta_dir) {
+htaccess_parse_files(htaccess_ctx_t *ht_ctx, const char *buf, htaccess_directory_t *hta_dir) {
     unsigned int i;
     int rc;
     enum parser_state_e state = NONE;
@@ -131,7 +131,7 @@ htaccess_parse_files(const char *buf, htaccess_directory_t *hta_dir) {
             continue;
         } else if (state == IN_CTX_FILES) {
             /* Parse directives */
-            rc = htaccess_parse_directives(&buf[i], hta_file);
+            rc = htaccess_parse_directives(ht_ctx, &buf[i], hta_file);
             if (rc < 0)
                 return -1;
 
@@ -146,8 +146,8 @@ htaccess_parse_files(const char *buf, htaccess_directory_t *hta_dir) {
 }
 
 int
-htaccess_parse_directory(const char *buf,
-                        htaccess_ctx_t *ht_ctx) {
+htaccess_parse_directory(htaccess_ctx_t *ht_ctx,
+                         const char *buf) {
     unsigned int i;
     int rc;
     enum parser_state_e state = NONE;
@@ -168,7 +168,7 @@ htaccess_parse_directory(const char *buf,
 
             /* printf("RB_INSERT(rb_directory_list_head_t, &(ht_ctx->directories), dir)\n"); */
             if (!hta_dir) {
-                printf("FAIL! no hta_dir\n");
+                htaccess_add_error(ht_ctx, "Expected an htaccess_directory_t object");
                 return -1;
             }
 
@@ -186,7 +186,7 @@ htaccess_parse_directory(const char *buf,
 
             hta_dir = new_htaccess_directory();
             if (!hta_dir) {
-                printf("Unable to construct a new directory entry\n");
+                htaccess_add_error(ht_ctx, "Unable to construct a new htaccess_directory_t object");
                 return -1;
             }
 
@@ -194,7 +194,7 @@ htaccess_parse_directory(const char *buf,
         } else if (state == IN_TAG_DIRECTORY && buf[i] == '\"') {
             str = htaccess_parse_quoted_string(&buf[i]);
             if (!hta_dir) {
-                printf("Parse error: htaccess_directory_t was not created\n");
+                htaccess_add_error(ht_ctx, "Expected an htaccess_directory_t object");
                 return -1;
             }
 
@@ -209,23 +209,23 @@ htaccess_parse_directory(const char *buf,
             continue;
         } else if (state == IN_CTX_DIRECTORY) {
             /* Parse the Files */
-            rc = htaccess_parse_files(&buf[i], hta_dir);
+            rc = htaccess_parse_files(ht_ctx, &buf[i], hta_dir);
             if (rc < 0)
                 return -1;
 
             i += rc;
             continue;
         } else {
-            printf("Parse error: \"%.20s\"\n", &buf[i]);
+            htaccess_add_error(ht_ctx, "Parse error at \"%.30s\"\n", &buf[i]);
             return -1;
         }
     }
-    printf("I'm done\n");
+    htaccess_clear_error(ht_ctx);
     return 0;
 }
 
 int
-htaccess_parse_htgroup(htaccess_filepath_t *hta_path) {
+htaccess_parse_htgroup(htaccess_ctx_t *ht_ctx, htaccess_filepath_t *hta_path) {
     size_t i, il;
     char *buf, *line, *username, *groupname;
     htaccess_htgroup_t *gr;
@@ -277,7 +277,7 @@ htaccess_parse_htgroup(htaccess_filepath_t *hta_path) {
 }
 
 int
-htaccess_parse_htpasswd(htaccess_filepath_t *hta_path) {
+htaccess_parse_htpasswd(htaccess_ctx_t *ht_ctx, htaccess_filepath_t *hta_path) {
     size_t i, il;
     char *buf, *line, *username, *pwhash;
     htaccess_htpasswd_t *pw;

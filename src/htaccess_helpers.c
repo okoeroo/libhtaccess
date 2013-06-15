@@ -1,4 +1,3 @@
-#include "htaccess/htaccess.h"
 #include "htaccess_internal.h"
 
 
@@ -150,7 +149,7 @@ htaccess_process_ctx(htaccess_ctx_t *ht_ctx) {
                     hta_filepath = htaccess_add_filepath(ht_ctx, hta_dir_value->value);
                     hta_dir_value->filepath = hta_filepath;
 
-                    htaccess_parse_htgroup(hta_dir_value->filepath);
+                    htaccess_parse_htgroup(ht_ctx, hta_dir_value->filepath);
                 }
             }
 
@@ -165,7 +164,7 @@ htaccess_process_ctx(htaccess_ctx_t *ht_ctx) {
                     hta_filepath = htaccess_add_filepath(ht_ctx, hta_dir_value->value);
                     hta_dir_value->filepath = hta_filepath;
 
-                    htaccess_parse_htpasswd(hta_dir_value->filepath);
+                    htaccess_parse_htpasswd(ht_ctx, hta_dir_value->filepath);
                 }
             }
         }
@@ -389,15 +388,20 @@ htaccess_ctx_t *
 new_htaccess_ctx(void) {
     htaccess_ctx_t *ctx = NULL;
 
-    directive_map_list_init();
-
     ctx = malloc(sizeof(htaccess_ctx_t));
     if (!ctx)
         goto error;
 
+    directive_map_list_init();
+
     RB_INIT(&(ctx->directories));
     ctx->lineno = 0;
     ctx->indent = 0;
+
+    /* Allocate error buffer */
+    ctx->error = malloc(HTACCESS_MAX_ERROR_STR);
+    if (!ctx->error)
+        goto error;
 
     return ctx;
 error:
@@ -459,9 +463,11 @@ free_htaccess_ctx(htaccess_ctx_t *ctx) {
         return;
 
     RB_FOREACH_SAFE(dir, rb_directory_list_head_t, &(ctx->directories), tmp_dir) {
-        printf("dir->dirname: %s\n", dir->dirname);
         free_htaccess_directory(dir);
     }
+
+    if (ctx->error)
+        free(ctx->error);
 
     free(ctx);
     return;
@@ -613,3 +619,80 @@ final:
     free(buf);
     return NULL;
 }
+
+int
+htaccess_add_error(htaccess_ctx_t *ht_ctx, const char *fmt, ...) {
+    va_list pvar;
+    int res;
+    char *buf = NULL;
+    char *buf2 = NULL;
+
+    if (!ht_ctx || !fmt)
+        return 1;
+
+    buf = malloc(HTACCESS_MAX_ERROR_STR);
+    if (!buf)
+        goto error;
+
+    buf2 = malloc(HTACCESS_MAX_ERROR_STR);
+    if (!buf2)
+        goto error;
+
+    va_start(pvar, fmt);
+    res = vsnprintf(buf, HTACCESS_MAX_ERROR_STR, fmt, pvar);
+    va_end(pvar);
+
+    if ((res >= HTACCESS_MAX_ERROR_STR) || (res < 0))
+        goto error;
+
+    if (htaccess_get_error(ht_ctx)) {
+        snprintf(buf2, HTACCESS_MAX_ERROR_STR, "%s: %s", buf, htaccess_get_error(ht_ctx));
+        htaccess_set_error(ht_ctx, buf2);
+    } else {
+        htaccess_set_error(ht_ctx, buf);
+    }
+
+    free(buf);
+    free(buf2);
+    return 0;
+error:
+    free(buf);
+    free(buf2);
+    return 1;
+}
+
+int
+htaccess_set_error(htaccess_ctx_t *ht_ctx, const char *fmt, ...) {
+    va_list pvar;
+    int res;
+
+    if (!ht_ctx || !fmt)
+        return 1;
+
+    va_start(pvar, fmt);
+    res = vsnprintf(ht_ctx->error, HTACCESS_MAX_ERROR_STR, fmt, pvar);
+    va_end(pvar);
+
+    if ((res >= HTACCESS_MAX_ERROR_STR) || (res < 0))
+        return 1;
+
+    return 0;
+}
+
+char *
+htaccess_get_error(htaccess_ctx_t *ht_ctx) {
+    if (!ht_ctx || !ht_ctx->error || ht_ctx->error[0] == '\0')
+        return NULL;
+
+    return ht_ctx->error;
+}
+
+void
+htaccess_clear_error(htaccess_ctx_t *ctx) {
+    if (!ctx || !ctx->error)
+        return;
+
+    memset(ctx->error, 0, HTACCESS_MAX_ERROR_STR);
+    return;
+}
+
