@@ -22,6 +22,7 @@ libhtaccess_ladir = $(includedir)/htaccess/
 libhtaccess_la_HEADERS = \
         htaccess/tree.h \
         htaccess/queue.h \
+        htaccess/htaccess_types.h \
         htaccess/htaccess.h
 
 libhtaccess_la_SOURCES = \
