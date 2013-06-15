@@ -246,6 +246,9 @@ htaccess_parse_htgroup(htaccess_ctx_t *ht_ctx, htaccess_filepath_t *hta_path) {
             break;
 
         groupname = htaccess_str_returned_upto_colon(line);
+        if (!groupname)
+            continue;
+
         il = strlen(groupname) + 1;
 
         while (line[il] != '\0') {
@@ -259,7 +262,10 @@ htaccess_parse_htgroup(htaccess_ctx_t *ht_ctx, htaccess_filepath_t *hta_path) {
                 break;
 
             gr = new_htaccess_htgroup();
-            gr->groupname = groupname;
+            gr->groupname = strdup(groupname);
+            if (!gr->groupname)
+                goto failure;
+
             gr->username = username;
 
             RB_INSERT(rb_htgroup_tree_t, &(hta_path->htgroup), gr);
@@ -267,11 +273,18 @@ htaccess_parse_htgroup(htaccess_ctx_t *ht_ctx, htaccess_filepath_t *hta_path) {
         }
 
         i += strlen(line) - 1;
+        free(groupname);
         free(line);
     }
 
     hta_path->done = 1;
     return 0;
+failure:
+    free(line);
+    free(groupname);
+    free(username);
+    free(gr);
+    return 1;
 }
 
 int

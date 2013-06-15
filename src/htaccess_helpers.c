@@ -41,9 +41,7 @@ htaccess_htpasswd_t *new_htaccess_htpasswd(void) {
     if (!pw)
         return NULL;
 
-    pw->username = NULL;
-    pw->pwhash   = NULL;
-
+    memset(pw, 0, sizeof(htaccess_htpasswd_t));
     return pw;
 }
 
@@ -63,9 +61,7 @@ htaccess_htgroup_t *new_htaccess_htgroup(void) {
     if (!gr)
         return NULL;
 
-    gr->groupname = NULL;
-    gr->username  = NULL;
-
+    memset(gr, 0, sizeof(htaccess_htpasswd_t));
     return gr;
 }
 
@@ -86,7 +82,7 @@ new_htaccess_filepath(void) {
     if (!filepath)
         return NULL;
 
-    filepath->done = 0;
+    memset(filepath, 0, sizeof(htaccess_filepath_t));
     RB_INIT(&(filepath->htpasswd));
     RB_INIT(&(filepath->htgroup));
 
@@ -95,9 +91,21 @@ new_htaccess_filepath(void) {
 
 void
 free_htaccess_filepath(htaccess_filepath_t *filepath) {
-    /* RB_INIT(&(filepath->htpasswd)); */
-    /* RB_INIT(&(filepath->htgroup)); */
+    htaccess_htpasswd_t *pw, *pw_tmp;
+    htaccess_htgroup_t *gr, *gr_tmp;
+
+    RB_FOREACH_SAFE(pw, rb_htpasswd_tree_t, &(filepath->htpasswd), pw_tmp) {
+        RB_REMOVE(rb_htpasswd_tree_t, &(filepath->htpasswd), pw);
+        free_htaccess_htpasswd(pw);
+    }
+
+    RB_FOREACH_SAFE(gr, rb_htgroup_tree_t, &(filepath->htgroup), gr_tmp) {
+        RB_REMOVE(rb_htgroup_tree_t, &(filepath->htgroup), gr);
+        free_htaccess_htgroup(gr);
+    }
+
     free(filepath);
+    return;
 }
 
 htaccess_filepath_t *
@@ -286,7 +294,6 @@ int htaccess_file_cmp(struct rb_file_s *a,
     if ((!a && !b) || (!a->filename && !b->filename))
         return 0;
 
-    /* printf("htaccess_file_cmp(%s, %s)\n", a->filename, b->filename); */
     return strcmp(a->filename, b->filename);
 }
 
@@ -319,6 +326,8 @@ new_htaccess_directive_value(char *value, unsigned short v_loc) {
     if (!d_val)
         return NULL;
 
+    memset(d_val, 0, sizeof(htaccess_directive_value_t));
+
     d_val->v_loc = v_loc;
     if (d_val->v_loc) {
         d_val->value = strdup(value);
@@ -345,6 +354,8 @@ new_htaccess_directive_kv(htaccess_directive_map_t *key) {
     if (!hta_dir_kv)
         return NULL;
 
+    memset(hta_dir_kv, 0, sizeof(htaccess_directive_kv_t));
+
     hta_dir_kv->key = key;
     TAILQ_INIT(&(hta_dir_kv->values));
 
@@ -359,7 +370,7 @@ new_htaccess_file(void) {
     if (!file)
         goto error;
 
-    file->filename = NULL;
+    memset(file, 0, sizeof(htaccess_file_t));
     return file;
 
 error:
@@ -375,8 +386,8 @@ new_htaccess_directory(void) {
     if (!dir)
         goto error;
 
+    memset(dir, 0, sizeof(htaccess_directory_t));
     RB_INIT(&(dir->files));
-    dir->dirname = NULL;
     return dir;
 
 error:
@@ -392,19 +403,21 @@ new_htaccess_ctx(void) {
     if (!ctx)
         goto error;
 
+    memset(ctx, 0, sizeof(htaccess_ctx_t));
+
     directive_map_list_init();
 
     RB_INIT(&(ctx->directories));
-    ctx->lineno = 0;
-    ctx->indent = 0;
 
     /* Allocate error buffer */
     ctx->error = malloc(HTACCESS_MAX_ERROR_STR);
     if (!ctx->error)
         goto error;
 
+    htaccess_clear_error(ctx);
     return ctx;
 error:
+    free(ctx->error);
     free(ctx);
     return NULL;
 }
@@ -414,8 +427,10 @@ free_htaccess_directive_value(htaccess_directive_value_t *val) {
     if (!val)
         return;
 
-    if (val->v_loc)
+    if (val->v_loc) {
         free(val->value);
+    }
+    val->value = NULL;
 
     free(val);
     return;
@@ -423,19 +438,34 @@ free_htaccess_directive_value(htaccess_directive_value_t *val) {
 
 void
 free_htaccess_directive_kv(htaccess_directive_kv_t *kv) {
+    htaccess_directive_value_t *x_value, *x_value_tmp;
     if (!kv)
         return;
 
+    TAILQ_FOREACH_SAFE(x_value, &(kv->values), next, x_value_tmp) {
+        TAILQ_REMOVE(&(kv->values), x_value, next);
+        free_htaccess_directive_value(x_value);
+    }
+
+    kv->key = NULL; /* Don't free here! */
     free(kv);
     return;
 }
 
 void
 free_htaccess_file(htaccess_file_t *fn) {
+    htaccess_directive_kv_t *kv, *tmp_kv;
+
     if (!fn)
         return;
 
+    RB_FOREACH_SAFE(kv, rb_directive_kv_list_head_t, &(fn->directives), tmp_kv) {
+        RB_REMOVE(rb_directive_kv_list_head_t, &(fn->directives), kv);
+        free_htaccess_directive_kv(kv);
+    }
+
     free(fn->filename);
+    fn->filename = NULL;
     free(fn);
     return;
 }
@@ -447,10 +477,12 @@ free_htaccess_directory(htaccess_directory_t *dir) {
         return;
 
     RB_FOREACH_SAFE(fn, rb_file_list_head_t, &(dir->files), tmp_fn) {
+        RB_REMOVE(rb_file_list_head_t, &(dir->files), fn);
         free_htaccess_file(fn);
     }
 
     free(dir->dirname);
+    dir->dirname = NULL;
     free(dir);
     return;
 }
@@ -458,16 +490,23 @@ free_htaccess_directory(htaccess_directory_t *dir) {
 void
 free_htaccess_ctx(htaccess_ctx_t *ctx) {
     htaccess_directory_t *dir, *tmp_dir;
+    htaccess_filepath_t *fp, *tmp_fp;
 
     if (!ctx)
         return;
 
     RB_FOREACH_SAFE(dir, rb_directory_list_head_t, &(ctx->directories), tmp_dir) {
+        RB_REMOVE(rb_directory_list_head_t, &(ctx->directories), dir);
         free_htaccess_directory(dir);
     }
 
     if (ctx->error)
         free(ctx->error);
+
+    RB_FOREACH_SAFE(fp, rb_filepath_tree_t, &(ctx->paths), tmp_fp) {
+        RB_REMOVE(rb_filepath_tree_t, &(ctx->paths), fp);
+        free_htaccess_filepath(fp);
+    }
 
     free(ctx);
     return;
