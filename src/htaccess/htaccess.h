@@ -13,5 +13,9 @@ void htaccess_print_ctx(htaccess_ctx_t *);
 
 char *htaccess_get_error(htaccess_ctx_t *);
 
+htaccess_decision_t
+htaccess_approve_access(htaccess_ctx_t *ht_ctx, const char *,
+                                                const char *,
+                                                const char *);
 
 #endif /* HTACCESS_H */

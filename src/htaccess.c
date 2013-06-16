@@ -37,8 +37,7 @@ htaccess_parse_file(htaccess_ctx_t *ht_ctx, const char *fname) {
 htaccess_decision_t
 htaccess_approve_access(htaccess_ctx_t *ht_ctx, const char *directory,
                                                 const char *file,
-                                                const char *username,
-                                                const char *pwhash) {
+                                                const char *username) {
     htaccess_decision_t decision = HTA_INAPPLICABLE;
 
     htaccess_directory_t *found_dir, search_dir;
@@ -47,9 +46,8 @@ htaccess_approve_access(htaccess_ctx_t *ht_ctx, const char *directory,
     htaccess_directive_value_t *hta_dir_value;
     unsigned short treat_as_require_group = 0;
     size_t i;
-    htaccess_htpasswd_t *pw;
-    htaccess_htgroup_t *gr;
-    htaccess_filepath_t *hta_filepath;
+    /* htaccess_htpasswd_t *found_pw, search_pw; */
+    htaccess_htgroup_t *found_gr, search_gr;
 
     search_dir.dirname = directory;
     found_dir = RB_FIND(rb_directory_list_head_t, &(ht_ctx->directories), &search_dir);
@@ -72,38 +70,19 @@ htaccess_approve_access(htaccess_ctx_t *ht_ctx, const char *directory,
 
     /* Special for the REQUIRE directive */
     TAILQ_FOREACH(hta_dir_value, &(found_directive->values), next) {
-        if (i == 0) {
-            /* MUST find a "group" sub-statement as the
-             * first element in the list */
-            if (strcasecmp(hta_dir_value->value, "group") != 0) {
-                htaccess_add_error(ht_ctx, "Expected first element for \"Require\" is \"group\"");
-                break;
-            }
-            /* Treat as a REQUIRE_GROUP */
-            treat_as_require_group = 1;
+        if (!hta_dir_value->sub_directive)
             continue;
-        } else if (treat_as_require_group) {
-            /* Walk the required groups and
-             * per group, search for a matching username
-             */
+        else if (hta_dir_value->sub_directive == HTA_GROUP) {
+            /* Means: require group, with a groupname */
+            search_gr.groupname = hta_dir_value->value;
+            search_gr.username  = username;
 
+            found_gr = RB_FIND(rb_htgroup_tree_t, &(hta_dir_value->filepath->htgroup), &search_gr);
+            if (found_gr) {
+                return HTA_PERMIT;
+            }
         }
-        i++;
     }
-#if 0
-                        RB_FOREACH(gr, rb_htgroup_tree_t, &(hta_dir_value->filepath->htgroup)) {
-                            printf("\t\t\t\tgroupname: \"%s\" username: \"%s\"\n",
-                                    gr->groupname,
-                                    gr->username);
-                        }
-
-
-                        RB_FOREACH(pw, rb_htpasswd_tree_t, &(hta_dir_value->filepath->htpasswd)) {
-                            printf("\t\t\t\tusername: \"%s\" password hash: \"%s\"\n",
-                                    pw->username,
-                                    pw->pwhash);
-                        }
-#endif
     return HTA_DENY;
 }
 
