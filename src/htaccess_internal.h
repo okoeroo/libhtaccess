@@ -34,6 +34,13 @@ void directive_map_list_init(void);
 htaccess_directive_map_t *search_directive_map_on_str(const char *);
 htaccess_directive_map_t *search_directive_map_on_type(htaccess_directive_type_t);
 
+int htaccess_sub_directive_map_cmp(htaccess_sub_directive_map_t *, htaccess_sub_directive_map_t *);
+RB_HEAD(sub_directive_map_tree_t, rb_sub_directive_map_s);
+RB_PROTOTYPE(sub_directive_map_tree_t, rb_sub_directive_map_s, entry, htaccess_sub_directive_map_cmp)
+void sub_directive_map_list_init(void);
+htaccess_sub_directive_map_t *search_sub_directive_map_on_str(const char *);
+htaccess_sub_directive_map_t *search_sub_directive_map_on_type(htaccess_sub_directive_type_t);
+
 htaccess_directive_value_t *new_htaccess_directive_value(char *, unsigned short);
 void free_htaccess_directive_value(htaccess_directive_value_t *);
 

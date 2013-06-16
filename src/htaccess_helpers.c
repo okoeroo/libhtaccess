@@ -133,58 +133,6 @@ htaccess_add_filepath(htaccess_ctx_t *ht_ctx, char *path) {
     return hta_filepath;
 }
 
-void
-htaccess_process_ctx(htaccess_ctx_t *ht_ctx) {
-    htaccess_directory_t *hta_dir;
-    htaccess_file_t *hta_file;
-    htaccess_directive_value_t *hta_dir_value;
-    htaccess_directive_kv_t *hta_dir_kv_found, hta_dir_kv_search;
-    htaccess_filepath_t *hta_filepath;
-
-    RB_FOREACH(hta_dir, rb_directory_list_head_t, &(ht_ctx->directories)) {
-        RB_FOREACH(hta_file, rb_file_list_head_t, &(hta_dir->files)) {
-
-            hta_dir_kv_search.key = search_directive_map_on_type(AUTHGROUPFILE);
-            /* hta_dir_kv_search.type = AUTHUSERFILE; */
-
-            hta_dir_kv_found = RB_FIND(rb_directive_kv_list_head_t, &(hta_file->directives), &hta_dir_kv_search);
-            if (hta_dir_kv_found) {
-                TAILQ_FOREACH(hta_dir_value, &(hta_dir_kv_found->values), next) {
-                    /* printf("\t\t\thta_dir_value->value: %s\n", hta_dir_value->value); */
-
-                    /* Idea: 1. add it to the ctx.
-                             2. add it to the hta_dir_value, parsed as AUTHGROUPFILE or AUTHUSERFILE object. */
-                    hta_filepath = htaccess_add_filepath(ht_ctx, hta_dir_value->value);
-                    hta_dir_value->filepath = hta_filepath;
-
-                    htaccess_parse_htgroup(ht_ctx, hta_dir_value->filepath);
-                }
-            }
-
-            hta_dir_kv_search.key = search_directive_map_on_type(AUTHUSERFILE);
-            hta_dir_kv_found = RB_FIND(rb_directive_kv_list_head_t, &(hta_file->directives), &hta_dir_kv_search);
-            if (hta_dir_kv_found) {
-                TAILQ_FOREACH(hta_dir_value, &(hta_dir_kv_found->values), next) {
-                    /* printf("\t\t\thta_dir_value->value: %s\n", hta_dir_value->value); */
-
-                    /* Idea: 1. add it to the ctx.
-                             2. add it to the hta_dir_value, parsed as AUTHGROUPFILE or AUTHUSERFILE object. */
-                    hta_filepath = htaccess_add_filepath(ht_ctx, hta_dir_value->value);
-                    hta_dir_value->filepath = hta_filepath;
-
-                    htaccess_parse_htpasswd(ht_ctx, hta_dir_value->filepath);
-                }
-            }
-        }
-    }
-
-#if 0
-    htaccess_print_ctx(ht_ctx);
-#endif
-
-    return;
-}
-
 
 RB_GENERATE(directive_map_tree_t, rb_directive_map_s, entry, htaccess_directive_map_cmp)
 
@@ -200,9 +148,23 @@ RB_GENERATE(directive_map_tree_t, rb_directive_map_s, entry, htaccess_directive_
         RB_INSERT(directive_map_tree_t, &directive_map_head, c);  \
 } while (0)
 
+RB_GENERATE(sub_directive_map_tree_t, rb_sub_directive_map_s, entry, htaccess_sub_directive_map_cmp)
+
+#define xsub_directive_map_add(sub_xdirective, cstr) do {        \
+        htaccess_sub_directive_map_t *c = malloc(sizeof(htaccess_sub_directive_map_t));  \
+                                                                  \
+        c->type = sub_xdirective;                                 \
+        c->str  = cstr;                                           \
+                                                                  \
+        RB_INSERT(sub_directive_map_tree_t, &sub_directive_map_head, c);  \
+} while (0)
+
+
 
 struct directive_map_tree_t directive_map_head;
-int xdirective_map_tree_initialized = 0;
+struct sub_directive_map_tree_t sub_directive_map_head;
+unsigned short xdirective_map_tree_initialized = 0;
+unsigned short xsub_directive_map_tree_initialized = 0;
 
 int
 htaccess_directive_map_cmp(htaccess_directive_map_t *a, htaccess_directive_map_t *b) {
@@ -220,24 +182,24 @@ directive_map_list_init(void) {
     RB_INIT(&directive_map_head);
 
     /* Initializations */
-    xdirective_map_add(AUTHNAME, "AuthName", 1, HTA_MUST_QUOTE);
-    xdirective_map_add(AUTHGROUPFILE, "AuthGroupFile", 1, HTA_OPT_QUOTE);
-    /* xdirective_map_add(REQUIRE_GROUP, "Require Group", 1, HTA_NO_QUOTE); */
-    xdirective_map_add(ORDER, "Order", 2, HTA_NO_QUOTE);
-    xdirective_map_add(DENY_FROM, "Deny From", 1, HTA_NO_QUOTE);
-    xdirective_map_add(ALLOW_FROM, "Allow From", 1, HTA_NO_QUOTE);
-    xdirective_map_add(AUTHTYPE, "AuthType", 1, HTA_NO_QUOTE);
-    xdirective_map_add(AUTHUSERFILE, "AuthUserFile", 1, HTA_OPT_QUOTE);
-    xdirective_map_add(REQUIRE, "Require", 99, HTA_NO_QUOTE);
-    xdirective_map_add(REDIRECT, "Redirect", 2, HTA_NO_QUOTE);
-    xdirective_map_add(SETENVIF, "SetEnvIf", 3, HTA_NO_QUOTE);
-    xdirective_map_add(REWRITECOND, "RewriteCond", 2, HTA_NO_QUOTE);
-    xdirective_map_add(REWRITERULE, "RewriteRule", 2, HTA_NO_QUOTE);
-    xdirective_map_add(DIRECTORYINDEX, "DirectoryIndex", 1, HTA_NO_QUOTE);
-    /* xdirective_map_add(ADDHANDLER, "AddHandler", 1-, HTA_NO_QUOTE); */
-    xdirective_map_add(ERRORDOCUMENT, "ErrorDocument", 2, HTA_NO_QUOTE);
-    xdirective_map_add(ADDDEFAULTCHARSET, "AddDefaultCharset", 1, HTA_NO_QUOTE);
-    xdirective_map_add(CHARSETSOURCEENC, "CharsetSourceEnc", 1, HTA_NO_QUOTE);
+    xdirective_map_add(HTA_AUTHNAME, "AuthName", 1, HTA_MUST_QUOTE);
+    xdirective_map_add(HTA_AUTHGROUPFILE, "AuthGroupFile", 1, HTA_OPT_QUOTE);
+    /* xdirective_map_add(HTA_REQUIRE_GROUP, "Require Group", 1, HTA_NO_QUOTE); */
+    xdirective_map_add(HTA_ORDER, "Order", 2, HTA_NO_QUOTE);
+    xdirective_map_add(HTA_DENY_FROM, "Deny From", 1, HTA_NO_QUOTE);
+    xdirective_map_add(HTA_ALLOW_FROM, "Allow From", 1, HTA_NO_QUOTE);
+    xdirective_map_add(HTA_AUTHTYPE, "AuthType", 1, HTA_NO_QUOTE);
+    xdirective_map_add(HTA_AUTHUSERFILE, "AuthUserFile", 1, HTA_OPT_QUOTE);
+    xdirective_map_add(HTA_REQUIRE, "Require", 99, HTA_NO_QUOTE);
+    xdirective_map_add(HTA_REDIRECT, "Redirect", 2, HTA_NO_QUOTE);
+    xdirective_map_add(HTA_SETENVIF, "SetEnvIf", 3, HTA_NO_QUOTE);
+    xdirective_map_add(HTA_REWRITECOND, "RewriteCond", 2, HTA_NO_QUOTE);
+    xdirective_map_add(HTA_REWRITERULE, "RewriteRule", 2, HTA_NO_QUOTE);
+    xdirective_map_add(HTA_DIRECTORYINDEX, "DirectoryIndex", 1, HTA_NO_QUOTE);
+    /* xdirective_map_add(HTA_ADDHANDLER, "AddHandler", 1-, HTA_NO_QUOTE); */
+    xdirective_map_add(HTA_ERRORDOCUMENT, "ErrorDocument", 2, HTA_NO_QUOTE);
+    xdirective_map_add(HTA_ADDDEFAULTCHARSET, "AddDefaultCharset", 1, HTA_NO_QUOTE);
+    xdirective_map_add(HTA_CHARSETSOURCEENC, "CharsetSourceEnc", 1, HTA_NO_QUOTE);
 
     xdirective_map_tree_initialized = 1;
     return;
@@ -268,6 +230,62 @@ search_directive_map_on_type(htaccess_directive_type_t t) {
     RB_FOREACH(dir_map_found, directive_map_tree_t, &directive_map_head) {
         if (dir_map_found->type == t) {
             return dir_map_found;
+        }
+    }
+    return NULL;
+}
+
+
+int
+htaccess_sub_directive_map_cmp(htaccess_sub_directive_map_t *a, htaccess_sub_directive_map_t *b) {
+    return strcasecmp(a->str, b->str);
+    /* return b->type - a->type; */
+}
+
+void
+sub_directive_map_list_init(void) {
+    if (xsub_directive_map_tree_initialized) {
+        /* Already initialized. */
+        return;
+    }
+
+    RB_INIT(&sub_directive_map_head);
+
+    /* Initializations */
+    xsub_directive_map_add(HTA_GROUP, "group");
+    xsub_directive_map_add(HTA_ALL, "all");
+    xsub_directive_map_add(HTA_ENV, "env");
+    xsub_directive_map_add(HTA_METHOD, "method");
+    xsub_directive_map_add(HTA_EXPR, "expr");
+    xsub_directive_map_add(HTA_USER, "user");
+    xsub_directive_map_add(HTA_VALID_USER, "valid-user");
+    xsub_directive_map_add(HTA_IP, "ip");
+
+    xsub_directive_map_tree_initialized = 1;
+    return;
+}
+
+htaccess_sub_directive_map_t *
+search_sub_directive_map_on_str(const char *s) {
+    htaccess_sub_directive_map_t sub_dir_map_search;
+
+    if (!xsub_directive_map_tree_initialized)
+        sub_directive_map_list_init();
+
+    sub_dir_map_search.str = s;
+    return RB_FIND(sub_directive_map_tree_t, &sub_directive_map_head, &sub_dir_map_search);
+}
+
+htaccess_sub_directive_map_t *
+search_sub_directive_map_on_type(htaccess_sub_directive_type_t t) {
+    htaccess_sub_directive_map_t *sub_dir_map_found;
+
+    if (!xsub_directive_map_tree_initialized)
+        sub_directive_map_list_init();
+
+    RB_FOREACH(sub_dir_map_found, sub_directive_map_tree_t, &sub_directive_map_head) {
+        if (sub_dir_map_found->type == t) {
+            return sub_dir_map_found;
         }
     }
     return NULL;
@@ -406,6 +424,7 @@ new_htaccess_ctx(void) {
     memset(ctx, 0, sizeof(htaccess_ctx_t));
 
     directive_map_list_init();
+    sub_directive_map_list_init();
 
     RB_INIT(&(ctx->directories));
 
@@ -735,3 +754,122 @@ htaccess_clear_error(htaccess_ctx_t *ctx) {
     return;
 }
 
+void
+htaccess_process_ctx(htaccess_ctx_t *ht_ctx) {
+    htaccess_directory_t *hta_dir;
+    htaccess_file_t *hta_file;
+    htaccess_directive_value_t *hta_dir_value, *hta_dir_value_tmp;
+    htaccess_directive_kv_t *hta_dir_kv, *hta_dir_kv_found, hta_dir_kv_search;
+    htaccess_filepath_t *hta_filepath;
+
+    size_t cnt;
+    htaccess_sub_directive_map_t *sub_dir_match = NULL;
+
+    RB_FOREACH(hta_dir, rb_directory_list_head_t, &(ht_ctx->directories)) {
+        RB_FOREACH(hta_file, rb_file_list_head_t, &(hta_dir->files)) {
+
+            hta_dir_kv_search.key = search_directive_map_on_type(HTA_AUTHGROUPFILE);
+            /* hta_dir_kv_search.type = AUTHUSERFILE; */
+
+            hta_dir_kv_found = RB_FIND(rb_directive_kv_list_head_t, &(hta_file->directives), &hta_dir_kv_search);
+            if (hta_dir_kv_found) {
+                TAILQ_FOREACH(hta_dir_value, &(hta_dir_kv_found->values), next) {
+                    /* printf("\t\t\thta_dir_value->value: %s\n", hta_dir_value->value); */
+
+                    /* Idea: 1. add it to the ctx.
+                             2. add it to the hta_dir_value, parsed as AUTHGROUPFILE or AUTHUSERFILE object. */
+                    hta_filepath = htaccess_add_filepath(ht_ctx, hta_dir_value->value);
+                    hta_dir_value->filepath = hta_filepath;
+
+                    htaccess_parse_htgroup(ht_ctx, hta_dir_value->filepath);
+                }
+            }
+
+            hta_dir_kv_search.key = search_directive_map_on_type(HTA_AUTHUSERFILE);
+            hta_dir_kv_found = RB_FIND(rb_directive_kv_list_head_t, &(hta_file->directives), &hta_dir_kv_search);
+            if (hta_dir_kv_found) {
+                TAILQ_FOREACH(hta_dir_value, &(hta_dir_kv_found->values), next) {
+                    /* printf("\t\t\thta_dir_value->value: %s\n", hta_dir_value->value); */
+
+                    /* Idea: 1. add it to the ctx.
+                             2. add it to the hta_dir_value, parsed as AUTHGROUPFILE or AUTHUSERFILE object. */
+                    hta_filepath = htaccess_add_filepath(ht_ctx, hta_dir_value->value);
+                    hta_dir_value->filepath = hta_filepath;
+
+                    htaccess_parse_htpasswd(ht_ctx, hta_dir_value->filepath);
+                }
+            }
+            /* Remove values if they are sub-directive and label siblings as that sub-directive */
+            RB_FOREACH(hta_dir_kv, rb_directive_kv_list_head_t, &(hta_file->directives)) {
+                if (hta_dir_kv->key->type == HTA_REQUIRE) {
+                    cnt = 0;
+                    TAILQ_FOREACH_SAFE(hta_dir_value, &(hta_dir_kv->values), next, hta_dir_value_tmp) {
+                        if (cnt == 0) {
+                            /* Match sub directive */
+                            sub_dir_match = search_sub_directive_map_on_str(hta_dir_value->value);
+                            if (sub_dir_match) {
+                                TAILQ_REMOVE(&(hta_dir_kv->values), hta_dir_value, next);
+                                free_htaccess_directive_value(hta_dir_value);
+                            }
+                        } else {
+                            /* Push the mapped sub directive match to all the values */
+                            hta_dir_value->sub_directive = sub_dir_match;
+                        }
+                        cnt++;
+                    }
+                }
+            }
+        }
+    }
+#if 0
+    htaccess_print_ctx(ht_ctx);
+#endif
+
+    return;
+}
+
+void
+htaccess_print_ctx(htaccess_ctx_t *ht_ctx) {
+    htaccess_directory_t *hta_dir;
+    htaccess_file_t *hta_file;
+    htaccess_directive_kv_t *hta_dir_kv;
+    htaccess_directive_value_t *hta_dir_value;
+    htaccess_htpasswd_t *pw;
+    htaccess_htgroup_t *gr;
+    htaccess_filepath_t *hta_filepath;
+
+
+    RB_FOREACH(hta_dir, rb_directory_list_head_t, &(ht_ctx->directories)) {
+        printf("hta_dir->dirname: %s\n", hta_dir->dirname);
+        RB_FOREACH(hta_file, rb_file_list_head_t, &(hta_dir->files)) {
+            printf("\thta_file->filename: %s\n", hta_file->filename);
+            RB_FOREACH(hta_dir_kv, rb_directive_kv_list_head_t, &(hta_file->directives)) {
+                printf("\t\thta_dir_kv->key->str: %s\n", hta_dir_kv->key->str);
+                TAILQ_FOREACH(hta_dir_value, &(hta_dir_kv->values), next) {
+                    printf("\t\t\thta_dir_value->value: %s\n", hta_dir_value->value);
+                    if (hta_dir_value->sub_directive)
+                        printf("\t\t\thta_dir_value->sub_directive->str: %s\n", hta_dir_value->sub_directive->str);
+
+                    if (hta_dir_kv->key->type == HTA_AUTHUSERFILE) {
+                        RB_FOREACH(pw, rb_htpasswd_tree_t, &(hta_dir_value->filepath->htpasswd)) {
+                            printf("\t\t\t\tusername: \"%s\" password hash: \"%s\"\n",
+                                    pw->username,
+                                    pw->pwhash);
+                        }
+                    } else if (hta_dir_kv->key->type == HTA_AUTHGROUPFILE) {
+                        RB_FOREACH(gr, rb_htgroup_tree_t, &(hta_dir_value->filepath->htgroup)) {
+                            printf("\t\t\t\tgroupname: \"%s\" username: \"%s\"\n",
+                                    gr->groupname,
+                                    gr->username);
+                        }
+                    }
+                }
+            }
+        }
+    }
+    RB_FOREACH(hta_filepath, rb_filepath_tree_t, &(ht_ctx->paths)) {
+        printf("path: %s\n", hta_filepath->path);
+    }
+
+    return;
+}

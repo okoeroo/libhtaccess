@@ -7,27 +7,51 @@
 
 #define HTACCESS_MAX_ERROR_STR 1024
 
+typedef enum htaccess_decision_e {
+    HTA_INAPPLICABLE = 0, /* I don't have a policy about this resource in the htaccess fils */
+    HTA_PERMIT,
+    HTA_DENY
+} htaccess_decision_t;
+
 typedef enum htaccess_directives_e {
-    NO_DIRECTIVE = 0,
-    AUTHNAME,
-    AUTHGROUPFILE,
-    REQUIRE_GROUP,
-    ORDER,
-    DENY_FROM,
-    ALLOW_FROM,
-    AUTHTYPE,
-    AUTHUSERFILE,
-    REQUIRE,
-    REDIRECT,
-    SETENVIF,
-    REWRITECOND,
-    REWRITERULE,
-    DIRECTORYINDEX,
-    ADDHANDLER,
-    ERRORDOCUMENT,
-    ADDDEFAULTCHARSET,
-    CHARSETSOURCEENC
+    HTA_NO_DIRECTIVE = 0,
+    HTA_AUTHNAME,
+    HTA_AUTHGROUPFILE,
+    HTA_ORDER,
+    HTA_DENY_FROM,
+    HTA_ALLOW_FROM,
+    HTA_AUTHTYPE,
+    HTA_AUTHUSERFILE,
+    HTA_REQUIRE,
+    HTA_REDIRECT,
+    HTA_SETENVIF,
+    HTA_REWRITECOND,
+    HTA_REWRITERULE,
+    HTA_DIRECTORYINDEX,
+    HTA_ADDHANDLER,
+    HTA_ERRORDOCUMENT,
+    HTA_ADDDEFAULTCHARSET,
+    HTA_CHARSETSOURCEENC
 } htaccess_directive_type_t;
+
+typedef enum htaccess_sub_directive_type_e {
+    HTA_NO_SUB_DIRECTIVE = 0,
+    HTA_GROUP,
+    HTA_ALL,
+    HTA_ENV,
+    HTA_METHOD,
+    HTA_EXPR,
+    HTA_USER,
+    HTA_VALID_USER,
+    HTA_IP
+} htaccess_sub_directive_type_t;
+
+typedef struct rb_sub_directive_map_s {
+    RB_ENTRY(rb_sub_directive_map_s) entry;
+
+    htaccess_sub_directive_type_t type;
+    const char *str;
+} htaccess_sub_directive_map_t;
 
 typedef struct rb_htpasswd_s {
     RB_ENTRY(rb_htpasswd_s) entry;
@@ -62,6 +86,7 @@ typedef struct tq_directive_value_s {
     unsigned short v_loc;
     char *value;
 
+    htaccess_sub_directive_map_t *sub_directive;
     htaccess_filepath_t *filepath;
 } htaccess_directive_value_t;
 
@@ -92,9 +117,8 @@ RB_HEAD(rb_directive_kv_list_head_t, rb_directive_kv_s);
 typedef struct rb_file_s {
     RB_ENTRY(rb_file_s) next;
 
-    struct rb_directive_kv_list_head_t directives;
-
     char *filename;
+    struct rb_directive_kv_list_head_t directives;
 } htaccess_file_t;
 RB_HEAD(rb_file_list_head_t, rb_file_s);
 
