@@ -6,11 +6,14 @@ int
 htaccess_parse_directives(htaccess_ctx_t *ht_ctx, const char *buf, htaccess_file_t *hta_file) {
     unsigned int i;
     char *str;
+    size_t buf_len;
+
     htaccess_directive_map_t *hta_dir_map;
     htaccess_directive_kv_t *hta_dir_kv;
     htaccess_directive_value_t *hta_dir_val;
 
-    for (i = 0; i < strlen(buf); i++) {
+    buf_len = strlen(buf);
+    for (i = 0; i < buf_len; i++) {
         if (buf[i] == '\n') {
             continue;
         } else if (buf[i] == ' ' || buf[i] == '\t') {
@@ -73,8 +76,10 @@ htaccess_parse_files(htaccess_ctx_t *ht_ctx, const char *buf, htaccess_directory
     enum parser_state_e state = NONE;
     char *str;
     htaccess_file_t *hta_file;
+    size_t buf_len;
 
-    for (i = 0; i < strlen(buf); i++) {
+    buf_len = strlen(buf);
+    for (i = 0; i < buf_len; i++) {
         if (buf[i] == '\n') {
             continue;
         } else if (buf[i] == ' ' || buf[i] == '\t') {
@@ -150,10 +155,11 @@ htaccess_parse_directory(htaccess_ctx_t *ht_ctx,
     int rc;
     enum parser_state_e state = NONE;
     char *str;
+    size_t buf_len;
     htaccess_directory_t *hta_dir;
 
-
-    for (i = 0; i < strlen(buf); i++) {
+    buf_len = strlen(buf);
+    for (i = 0; i < buf_len; i++) {
         if (buf[i] == '\n') {
             ht_ctx->lineno++;
             continue;
