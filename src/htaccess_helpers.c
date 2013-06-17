@@ -43,11 +43,10 @@ int htaccess_filepath_cmp(htaccess_filepath_t *a, htaccess_filepath_t *b) {
 htaccess_htpasswd_t *new_htaccess_htpasswd(void) {
     htaccess_htpasswd_t *pw;
 
-    pw = malloc(sizeof(htaccess_htpasswd_t));
+    pw = calloc(1, sizeof(htaccess_htpasswd_t));
     if (!pw)
         return NULL;
 
-    memset(pw, 0, sizeof(htaccess_htpasswd_t));
     return pw;
 }
 
@@ -63,11 +62,10 @@ void free_htaccess_htpasswd(htaccess_htpasswd_t *pw) {
 htaccess_htgroup_t *new_htaccess_htgroup(void) {
     htaccess_htgroup_t *gr;
 
-    gr = malloc(sizeof(htaccess_htgroup_t));
+    gr = calloc(1, sizeof(htaccess_htgroup_t));
     if (!gr)
         return NULL;
 
-    memset(gr, 0, sizeof(htaccess_htpasswd_t));
     return gr;
 }
 
@@ -84,11 +82,10 @@ htaccess_filepath_t *
 new_htaccess_filepath(void) {
     htaccess_filepath_t *filepath;
 
-    filepath = malloc(sizeof(htaccess_filepath_t));
+    filepath = calloc(1, sizeof(htaccess_filepath_t));
     if (!filepath)
         return NULL;
 
-    memset(filepath, 0, sizeof(htaccess_filepath_t));
     RB_INIT(&(filepath->htpasswd));
     RB_INIT(&(filepath->htgroup));
 
@@ -346,11 +343,9 @@ new_htaccess_directive_value(char *value, unsigned short v_loc) {
     if (!value)
         return NULL;
 
-    d_val = malloc(sizeof(htaccess_directive_value_t));
+    d_val = calloc(1, sizeof(htaccess_directive_value_t));
     if (!d_val)
         return NULL;
-
-    memset(d_val, 0, sizeof(htaccess_directive_value_t));
 
     d_val->v_loc = v_loc;
     if (d_val->v_loc) {
@@ -374,11 +369,9 @@ new_htaccess_directive_kv(htaccess_directive_map_t *key) {
     if (!key)
         return NULL;
 
-    hta_dir_kv = malloc(sizeof(htaccess_directive_kv_t));
+    hta_dir_kv = calloc(1, sizeof(htaccess_directive_kv_t));
     if (!hta_dir_kv)
         return NULL;
-
-    memset(hta_dir_kv, 0, sizeof(htaccess_directive_kv_t));
 
     hta_dir_kv->key = key;
     TAILQ_INIT(&(hta_dir_kv->values));
@@ -390,11 +383,10 @@ htaccess_file_t *
 new_htaccess_file(void) {
     htaccess_file_t *file;
 
-    file = malloc(sizeof(htaccess_file_t));
+    file = calloc(1, sizeof(htaccess_file_t));
     if (!file)
         goto error;
 
-    memset(file, 0, sizeof(htaccess_file_t));
     return file;
 
 error:
@@ -406,11 +398,10 @@ htaccess_directory_t *
 new_htaccess_directory(void) {
     htaccess_directory_t *dir;
 
-    dir = malloc(sizeof(htaccess_directory_t));
+    dir = calloc(1, sizeof(htaccess_directory_t));
     if (!dir)
         goto error;
 
-    memset(dir, 0, sizeof(htaccess_directory_t));
     RB_INIT(&(dir->files));
     return dir;
 
@@ -423,11 +414,9 @@ htaccess_ctx_t *
 new_htaccess_ctx(void) {
     htaccess_ctx_t *ctx = NULL;
 
-    ctx = malloc(sizeof(htaccess_ctx_t));
+    ctx = calloc(1, sizeof(htaccess_ctx_t));
     if (!ctx)
         goto error;
-
-    memset(ctx, 0, sizeof(htaccess_ctx_t));
 
     directive_map_list_init();
     sub_directive_map_list_init();
