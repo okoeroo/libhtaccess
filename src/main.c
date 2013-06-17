@@ -67,7 +67,7 @@ main (int argc, char *argv[]) {
         printf("Relative tot start: %lu\n", intermediate_time - start_time);
 
         for (i = 0; i < TEST_ROUNDS; i++) {
-            if (run_search_test(ht_ctx, "/lat/corpora/archive/1839/imdi/acqui_data/ac-ESF/Info", "esf.html", "corpman") != HTA_PERMIT) {
+            if (run_search_test(ht_ctx, "/archive/1839/imdi/acqui_data", "foobarmo19f.1.cha", "okoeroo") != HTA_PERMIT) {
                 printf("Expected PERMIT\n");
                 exit(1);
             }

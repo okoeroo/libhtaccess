@@ -232,8 +232,7 @@ htaccess_parse_htgroup(htaccess_ctx_t *ht_ctx, htaccess_filepath_t *hta_path) {
     if (!hta_path || !hta_path->path || hta_path->done)
         return 1;
 
-    /* buf = htaccess_readfile(hta_path->path); */
-    buf = htaccess_readfile("test/group0");
+    buf = htaccess_readfile(hta_path->path);
     if (!buf)
         return 1;
 
@@ -296,9 +295,7 @@ htaccess_parse_htpasswd(htaccess_ctx_t *ht_ctx, htaccess_filepath_t *hta_path) {
     if (!hta_path || !hta_path->path || hta_path->done)
         return 1;
 
-    printf("Should read %s, going to read /tmp/htpasswd\n", hta_path->path);
     buf = htaccess_readfile(hta_path->path);
-    /* buf = htaccess_readfile("/tmp/htpasswd"); */
     if (!buf)
         return 1;
 
