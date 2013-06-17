@@ -41,3 +41,6 @@ htaccess_main_SOURCES = \
 
 htaccess_main_LDFLAGS = -fstack-protector -lhtaccess
 
+EXTRA_DIST = \
+     autogen.sh \
+     README.markdown
