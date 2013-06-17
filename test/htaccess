@@ -1,0 +1,80 @@
+<Directory "/lat/corpora/Info" >
+	
+<Files "description.html" >
+	deny from all
+</Files>
+
+</Directory>
+<Directory "/acqui_data/ac-ESF/Info" >
+	
+<Files "foobaral32_prt.txt" >
+	AuthName "Restricted Files"
+	AuthGroupFile test/group0
+	Require group group0
+</Files>
+<Files "foobar12_prt.txt" >
+	AuthName "Restricted Files"
+	AuthGroupFile test/group0
+	Require group group0
+</Files>
+<Files "foobar13_prt.txt" >
+	AuthName "Restricted Files"
+	AuthGroupFile test/group0
+	Require group group0
+</Files>
+<Files "foobarpa23_prt.txt" >
+	AuthName "Restricted Files"
+	AuthGroupFile test/group0
+	Require group group0
+</Files>
+<Files "foobar34_prt.txt" >
+	AuthName "Restricted Files"
+	AuthGroupFile test/group0
+	Require group group0
+</Files>
+<Files "foobar_bio.txt" >
+	AuthName "Restricted Files"
+	AuthGroupFile test/group0
+	Require group group0
+</Files>
+<Files "foobar35_prt.txt" >
+	AuthName "Restricted Files"
+	AuthGroupFile test/group0
+	Require group group0
+</Files>
+
+</Directory>
+<Directory "/archive/1839/imdi/acqui_data" >
+	
+<Files "foobarmo19f.1.cha" >
+	AuthName "Restricted Files"
+	AuthGroupFile test/group0
+	Require group group0
+</Files>
+<Files "foobarmo19l.1.tr" >
+	AuthName "Restricted Files"
+	AuthGroupFile test/group0
+	Require group group0
+</Files>
+<Files "foobarmo19c.1.cha" >
+	AuthName "Restricted Files"
+	AuthGroupFile test/group0
+	Require group group0
+</Files>
+<Files "foobarmo19c.1.tr" >
+	AuthName "Restricted Files"
+	AuthGroupFile test/group0
+	Require group group0
+</Files>
+<Files "foobarmo19f.1.tr" >
+	AuthName "Restricted Files"
+	AuthGroupFile test/group0
+	Require group group0
+</Files>
+<Files "foobarmo19l.1.cha" >
+	AuthName "Restricted Files"
+	AuthGroupFile test/group0
+	Require group group0
+</Files>
+
+</Directory>
