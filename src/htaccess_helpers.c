@@ -14,12 +14,18 @@ int htaccess_htpasswd_cmp(htaccess_htpasswd_t *a, htaccess_htpasswd_t *b) {
 
 int htaccess_htgroup_cmp(htaccess_htgroup_t *a, htaccess_htgroup_t *b) {
     int rc;
-    if ((!a && !b) || (!a->groupname && !b->groupname))
+    if (!a && !b)
+        return 0;
+
+    if (!a->groupname && !b->groupname)
         return 0;
 
     rc = strcmp(a->groupname, b->groupname);
     if (rc != 0)
         return rc;
+
+    if (!a->username && !b->username)
+        return 0;
 
     return strcmp(a->username, b->username);
 }
