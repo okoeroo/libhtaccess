@@ -390,7 +390,6 @@ new_htaccess_file(void) {
     return file;
 
 error:
-    free(file);
     return NULL;
 }
 
