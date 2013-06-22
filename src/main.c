@@ -56,7 +56,7 @@ main (int argc, char *argv[]) {
 
 
     #define TEST_SURROUND 10
-    #define TEST_ROUNDS   10000000
+    #define TEST_ROUNDS   50000000
 
     time_t start_time, total_time, intermediate_time;
 
@@ -72,7 +72,6 @@ main (int argc, char *argv[]) {
                 exit(1);
             }
         }
-        printf(".");
         fflush(stdout);
     }
     time(&total_time);
