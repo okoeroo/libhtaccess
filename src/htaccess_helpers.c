@@ -668,6 +668,8 @@ htaccess_readfile(const char *fname) {
     return buf;
 
 final:
+    if (fp)
+        fclose(fp);
     free(buf);
     return NULL;
 }
