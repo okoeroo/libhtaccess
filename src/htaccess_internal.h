@@ -59,9 +59,6 @@ RB_PROTOTYPE(rb_directory_list_head_t, rb_directory_s, next, htaccess_directory_
 htaccess_directory_t *new_htaccess_directory(void);
 void free_htaccess_directory(htaccess_directory_t *);
 
-htaccess_ctx_t *new_htaccess_ctx(void);
-void free_htaccess_ctx(htaccess_ctx_t *);
-
 
 enum parser_state_e {
     NONE,
@@ -91,13 +88,25 @@ htaccess_filepath_t *htaccess_add_filepath(htaccess_ctx_t *, char *);
 void htaccess_process_ctx(htaccess_ctx_t *);
 char *htaccess_readfile(const char *);
 
-void htaccess_print_ctx(htaccess_ctx_t *);
 
 /* Error string handling */
 int htaccess_set_error(htaccess_ctx_t *, const char *, ...);
 int htaccess_add_error(htaccess_ctx_t *, const char *, ...);
-char *htaccess_get_error(htaccess_ctx_t *);
 void htaccess_clear_error(htaccess_ctx_t *);
+
+/****** Copied from htaccess/htaccess.h ******/
+htaccess_ctx_t *new_htaccess_ctx(void);
+void free_htaccess_ctx(htaccess_ctx_t *);
+int htaccess_parse_buffer(htaccess_ctx_t *, char *);
+int htaccess_parse_file(htaccess_ctx_t *, const char *);
+void htaccess_print_ctx(htaccess_ctx_t *);
+char *htaccess_get_error(htaccess_ctx_t *);
+htaccess_decision_t
+htaccess_approve_access(htaccess_ctx_t *ht_ctx, const char *,
+                                                const char *,
+                                                const char *);
+/****** Copied from htaccess/htaccess.h ******/
+
 
 #endif /* HTACCESS_INTERNAL_H */
 

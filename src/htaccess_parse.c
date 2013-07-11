@@ -1,4 +1,4 @@
-#include "htaccess/htaccess.h"
+/* #include "htaccess/htaccess.h" */
 #include "htaccess_internal.h"
 
 
@@ -245,8 +245,10 @@ htaccess_parse_htgroup(htaccess_ctx_t *ht_ctx, htaccess_filepath_t *hta_path) {
     /* Hack */
 
     buf = htaccess_readfile(hta_path->path);
-    if (!buf)
+    if (!buf) {
+        htaccess_add_error(ht_ctx, "Error: could not read htgroup file \"%.500s\"", hta_path->path);
         return 1;
+    }
 
     for (i = 0; buf != '\0'; i++) {
         if (buf[i] == '\n')
@@ -308,8 +310,10 @@ htaccess_parse_htpasswd(htaccess_ctx_t *ht_ctx, htaccess_filepath_t *hta_path) {
         return 1;
 
     buf = htaccess_readfile(hta_path->path);
-    if (!buf)
+    if (!buf) {
+        htaccess_add_error(ht_ctx, "Error: could not read htpasswd file \"%.500s\"", hta_path->path);
         return 1;
+    }
 
     for (i = 0; buf != '\0'; i++) {
         if (buf[i] == '\n')

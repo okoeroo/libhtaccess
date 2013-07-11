@@ -1,4 +1,4 @@
-#include "htaccess/htaccess.h"
+/* #include "htaccess/htaccess.h" */
 #include "htaccess_internal.h"
 
 int
@@ -44,8 +44,7 @@ htaccess_approve_access(htaccess_ctx_t *ht_ctx, const char *directory,
     htaccess_file_t *found_file, search_file;
     htaccess_directive_kv_t *found_directive, search_directive;
     htaccess_directive_value_t *hta_dir_value, *hta_dir_value_sub;
-    unsigned short treat_as_require_group = 0;
-    size_t i;
+
     /* htaccess_htpasswd_t *found_pw, search_pw; */
     htaccess_htgroup_t *found_gr, search_gr;
 
