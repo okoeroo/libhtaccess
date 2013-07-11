@@ -14,11 +14,17 @@ int htaccess_htpasswd_cmp(htaccess_htpasswd_t *a, htaccess_htpasswd_t *b) {
 
 int htaccess_htgroup_cmp(htaccess_htgroup_t *a, htaccess_htgroup_t *b) {
     int rc;
-    if (!a && !b)
+    if (!a || !b)
         return 0;
 
     if (!a->groupname && !b->groupname)
         return 0;
+
+    if (!a->groupname)
+        return -1;
+
+    if (!b->groupname)
+        return 1;
 
     rc = strcmp(a->groupname, b->groupname);
     if (rc != 0)
@@ -26,6 +32,12 @@ int htaccess_htgroup_cmp(htaccess_htgroup_t *a, htaccess_htgroup_t *b) {
 
     if (!a->username && !b->username)
         return 0;
+
+    if (!a->username)
+        return -1;
+
+    if (!b->username)
+        return 1;
 
     return strcmp(a->username, b->username);
 }
@@ -43,11 +55,10 @@ int htaccess_filepath_cmp(htaccess_filepath_t *a, htaccess_filepath_t *b) {
 htaccess_htpasswd_t *new_htaccess_htpasswd(void) {
     htaccess_htpasswd_t *pw;
 
-    pw = malloc(sizeof(htaccess_htpasswd_t));
+    pw = calloc(1, sizeof(htaccess_htpasswd_t));
     if (!pw)
         return NULL;
 
-    memset(pw, 0, sizeof(htaccess_htpasswd_t));
     return pw;
 }
 
@@ -63,11 +74,10 @@ void free_htaccess_htpasswd(htaccess_htpasswd_t *pw) {
 htaccess_htgroup_t *new_htaccess_htgroup(void) {
     htaccess_htgroup_t *gr;
 
-    gr = malloc(sizeof(htaccess_htgroup_t));
+    gr = calloc(1, sizeof(htaccess_htgroup_t));
     if (!gr)
         return NULL;
 
-    memset(gr, 0, sizeof(htaccess_htpasswd_t));
     return gr;
 }
 

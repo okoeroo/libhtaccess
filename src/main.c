@@ -49,7 +49,7 @@ main (int argc, char *argv[]) {
     }
 
 
-    /* htaccess_print_ctx(ht_ctx); */
+    htaccess_print_ctx(ht_ctx);
 
 
     run_search_test(ht_ctx, "/", "file", "okoeroo");

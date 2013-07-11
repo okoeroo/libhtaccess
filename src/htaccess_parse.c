@@ -229,8 +229,14 @@ htaccess_parse_htgroup(htaccess_ctx_t *ht_ctx, htaccess_filepath_t *hta_path) {
     htaccess_htgroup_t *gr;
 
 
-    if (!hta_path || !hta_path->path || hta_path->done)
+    if (!hta_path || !hta_path->path || hta_path->done) {
         return 1;
+    }
+
+    /* Hack */
+    /* gr = new_htaccess_htgroup(); */
+    /* RB_INSERT(rb_htgroup_tree_t, &(hta_path->htgroup), gr); */
+    /* Hack */
 
     buf = htaccess_readfile(hta_path->path);
     if (!buf)
